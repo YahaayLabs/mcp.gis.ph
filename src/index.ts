@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { Hono } from "hono";
 import { z } from "zod";
+import { barangayParams, pagingParams, provinceCodeFromMunicity, MAX_LIST_LIMIT } from "./params";
 
 export interface Env {
   MCP_OBJECT: DurableObjectNamespace;
@@ -35,6 +36,12 @@ async function gisApi(
   return response.json();
 }
 
+const pagingShape = {
+  limit: z.number().int().min(1).max(MAX_LIST_LIMIT).optional()
+    .describe("Rows per page, 1-100 (default 100). Check meta.total and meta.next for more pages."),
+  page: z.number().int().min(1).optional().describe("Page number, starting at 1 (default 1)"),
+};
+
 function buildMcpServer(apiKey: string): McpServer {
   const server = new McpServer({ name: "gis-ph", version: "1.0.0" });
 
@@ -55,10 +62,15 @@ function buildMcpServer(apiKey: string): McpServer {
   );
 
   // ── Provinces ──────────────────────────────────────────────────────────
-  server.tool("get_provinces", "Get all provinces in the Philippines", {}, async () => {
-    const data = await gisApi("/provinces", apiKey);
+  server.tool(
+    "get_provinces",
+    "Get provinces in the Philippines (paginated; response meta has total and next page)",
+    pagingShape,
+    async ({ limit, page }) => {
+    const data = await gisApi("/provinces", apiKey, { params: pagingParams({ limit, page }) });
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-  });
+    }
+  );
 
   server.tool(
     "get_province",
@@ -73,10 +85,12 @@ function buildMcpServer(apiKey: string): McpServer {
   // ── Municities ─────────────────────────────────────────────────────────
   server.tool(
     "get_municities",
-    "Get all cities and municipalities, optionally filtered by province",
-    { province_code: z.string().optional().describe("Province code to filter by") },
-    async ({ province_code }) => {
-      const data = await gisApi("/municities", apiKey, province_code ? { params: { province_code } } : undefined);
+    "Get cities and municipalities, optionally filtered by province (paginated; response meta has total and next page)",
+    { province_code: z.string().optional().describe("Province code to filter by"), ...pagingShape },
+    async ({ province_code, limit, page }) => {
+      const params = pagingParams({ limit, page });
+      if (province_code) params.province_code = province_code;
+      const data = await gisApi("/municities", apiKey, { params });
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -94,15 +108,21 @@ function buildMcpServer(apiKey: string): McpServer {
   // ── Barangays ──────────────────────────────────────────────────────────
   server.tool(
     "get_barangays",
-    "Get all barangays, optionally filtered by municity or province",
+    "Get barangays in a city/municipality or province (paginated; response meta has total and next page). Pass municipality_code (or province_code).",
     {
-      municity_code: z.string().optional().describe("City/municipality code to filter by"),
-      province_code: z.string().optional().describe("Province code to filter by"),
+      municipality_code: z.string().optional().describe("City/municipality PSGC code to filter by"),
+      municity_code: z.string().optional().describe("Deprecated alias of municipality_code"),
+      province_code: z.string().optional().describe("Province code; derived from the city when omitted"),
+      ...pagingShape,
     },
-    async ({ municity_code, province_code }) => {
-      const params: Record<string, string> = {};
-      if (municity_code) params.municity_code = municity_code;
-      if (province_code) params.province_code = province_code;
+    async (input) => {
+      const cityCode = input.municipality_code ?? input.municity_code;
+      let resolvedProvince: string | undefined;
+      if (cityCode && !input.province_code) {
+        // api.gis.ph may require a province; look it up from the municity.
+        resolvedProvince = provinceCodeFromMunicity(await gisApi(`/municities/${cityCode}`, apiKey));
+      }
+      const params = barangayParams(input, resolvedProvince);
       const data = await gisApi("/barangays", apiKey, { params });
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
