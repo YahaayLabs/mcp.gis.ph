@@ -3,7 +3,12 @@ import { StreamableHTTPTransport } from "@hono/mcp";
 import { Hono } from "hono";
 import { z } from "zod";
 import {
+  BATCH_BARANGAY_CODES_MAX,
+  BATCH_MUNICITY_CODES_MAX,
+  BATCH_PROVINCE_CODES_MAX,
+  BATCH_REGION_IDS_MAX,
   barangayParams,
+  batchSearchBody,
   datasetListParams,
   geoOutputParams,
   municityListParams,
@@ -22,6 +27,10 @@ import {
   provinceShape,
   provincesShape,
   regionsShape,
+  searchBarangaysByCodesShape,
+  searchMunicitiesByCodesShape,
+  searchProvincesByCodesShape,
+  searchRegionsByIdsShape,
 } from "./schemas";
 import { handleMcp, registerAuthRoutes, discoveryAuth, type UpstreamAuth } from "./http";
 import type { McpEnv } from "./config";
@@ -148,6 +157,52 @@ function buildMcpServer(apiKey: UpstreamAuth): McpServer {
     "Search barangays by name across all provinces (GET /v1/barangays/search). Multi-word queries are tokenized on spaces and commas; every token must match. Anonymous free-tier tool.",
     nameSearchShape,
     async (input) => json(await gisApi("/barangays/search", apiKey, { params: nameSearchParams(input) })),
+  );
+
+
+  // ── Batch lookup by ids/codes (API requires a key; 401 anonymously) ────
+  server.tool(
+    "search_regions_by_ids",
+    "Look up regions by ID in one request (POST /v1/regions/search). The body uses `ids`, not `codes`. Max 100. The live API requires a key (401 without one), which /mcp already forwards.",
+    searchRegionsByIdsShape,
+    async (input) =>
+      json(await gisApi("/regions/search", apiKey, {
+        method: "POST",
+        body: batchSearchBody("ids", input.ids, BATCH_REGION_IDS_MAX, "id", input),
+      })),
+  );
+
+  server.tool(
+    "search_provinces_by_codes",
+    "Look up provinces by PSGC code in one request (POST /v1/provinces/search). Max 100 codes. The live API requires a key (401 without one), which /mcp already forwards.",
+    searchProvincesByCodesShape,
+    async (input) =>
+      json(await gisApi("/provinces/search", apiKey, {
+        method: "POST",
+        body: batchSearchBody("codes", input.codes, BATCH_PROVINCE_CODES_MAX, "code", input),
+      })),
+  );
+
+  server.tool(
+    "search_municities_by_codes",
+    "Look up cities and municipalities by PSGC code in one request (POST /v1/municities/search). Max 1000 codes. The live API requires a key (401 without one), which /mcp already forwards.",
+    searchMunicitiesByCodesShape,
+    async (input) =>
+      json(await gisApi("/municities/search", apiKey, {
+        method: "POST",
+        body: batchSearchBody("codes", input.codes, BATCH_MUNICITY_CODES_MAX, "code", input),
+      })),
+  );
+
+  server.tool(
+    "search_barangays_by_codes",
+    "Look up barangays by PSGC code in one request (POST /v1/barangays/search). Max 500 codes. The live API requires a key (401 without one), which /mcp already forwards.",
+    searchBarangaysByCodesShape,
+    async (input) =>
+      json(await gisApi("/barangays/search", apiKey, {
+        method: "POST",
+        body: batchSearchBody("codes", input.codes, BATCH_BARANGAY_CODES_MAX, "code", input),
+      })),
   );
 
   // ── Datasets ───────────────────────────────────────────────────────────

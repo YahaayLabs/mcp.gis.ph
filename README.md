@@ -22,6 +22,10 @@ Tool parameters use the same names as the [api.gis.ph](https://api.gis.ph/refere
 | `get_barangay` | `GET /v1/barangays/{id}` | `barangay_code` (required), `format`, `geometry` |
 | `search_municities` | `GET /v1/municities/search` | `q` (required, min 2 chars), `limit` (API default 20). Anonymous free-tier tool. |
 | `search_barangays` | `GET /v1/barangays/search` | `q` (required, min 2 chars; tokens split on spaces/commas), `limit` (API default 20). Anonymous free-tier tool. |
+| `search_regions_by_ids` | `POST /v1/regions/search` | **`ids` required** (not `codes`; max 100), `format`, `geometry`. Live API returns 401 without a key. |
+| `search_provinces_by_codes` | `POST /v1/provinces/search` | **`codes` required** (max 100), `format`, `geometry`. Live API returns 401 without a key. |
+| `search_municities_by_codes` | `POST /v1/municities/search` | **`codes` required** (max 1000), `format`, `geometry`. Live API returns 401 without a key. |
+| `search_barangays_by_codes` | `POST /v1/barangays/search` | **`codes` required** (max 500), `format`, `geometry`. Live API returns 401 without a key. |
 | `list_datasets` | `GET /v1/datasets` | `visibility` (`mine` default \| `private` \| `all` \| `public`), `include_features`, `limit`, `page` |
 | `get_dataset` | `GET /v1/datasets/{id}` | `dataset_id` (required) |
 | `create_dataset` | `POST /v1/datasets` | `name` (required), `description`, `data_type` (`vector` \| `raster` \| `data`), `geometry_type`, `srid` |
@@ -38,7 +42,7 @@ Shared options:
 - `geometry`: `simple` \| `medium` \| `detailed`. Omitted by default, so JSON responses carry no boundaries.
 - `extent` (provinces): `administrative` (API default, component LGUs only) or `geographic` (also HUC/ICC cities hosted by the province).
 
-Name search (`search_municities`, `search_barangays`) is in the anonymous free-tier set. There are no reverse-geocode, places, politicians or demographics tools yet.
+Name search (`search_municities`, `search_barangays`) is in the anonymous free-tier set. Batch lookup by ids/codes requires a key: the live API returns 401 without one, even for `format=json` and omitted geometry. There are no reverse-geocode, places, politicians or demographics tools yet.
 
 ---
 

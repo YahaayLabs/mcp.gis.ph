@@ -194,3 +194,63 @@ export function nameSearchParams(input: NameSearchInput): Params {
   return params;
 }
 
+export const BATCH_LIST_MIN = 1;
+/** POST /v1/regions/search `ids` max. */
+export const BATCH_REGION_IDS_MAX = 100;
+/** POST /v1/provinces/search `codes` max. */
+export const BATCH_PROVINCE_CODES_MAX = 100;
+/** POST /v1/municities/search `codes` max. */
+export const BATCH_MUNICITY_CODES_MAX = 1000;
+/** POST /v1/barangays/search `codes` max. */
+export const BATCH_BARANGAY_CODES_MAX = 500;
+
+export function batchListEmptyMessage(noun: string): string {
+  return `Provide at least ${BATCH_LIST_MIN} non-empty ${noun}.`;
+}
+
+export function batchListMaxMessage(noun: string, max: number): string {
+  return `At most ${max} ${noun}s are allowed.`;
+}
+
+export function batchListItemMessage(noun: string): string {
+  return `Each ${noun} must be a non-empty string.`;
+}
+
+/**
+ * Trim and validate a batch of ids or codes. Empty items are rejected, not dropped.
+ */
+export function normalizeBatchList(values: string[] | undefined, max: number, noun: string): string[] {
+  const list: string[] = [];
+  for (const v of values ?? []) {
+    const s = typeof v === "string" ? v.trim() : "";
+    if (!s) throw new Error(batchListItemMessage(noun));
+    list.push(s);
+  }
+  if (list.length < BATCH_LIST_MIN) throw new Error(batchListEmptyMessage(noun));
+  if (list.length > max) throw new Error(batchListMaxMessage(noun, max));
+  return list;
+}
+
+export interface BatchSearchInput extends GeoOutputInput {
+  ids?: string[];
+  codes?: string[];
+}
+
+/**
+ * JSON body for POST /v1/{regions,provinces,municities,barangays}/search.
+ * Regions use `ids` (not `codes`). format and geometry are sent only when set.
+ * Never sends the deprecated `output` alias. The live API returns 401 without a key,
+ * even for format=json and omitted geometry.
+ */
+export function batchSearchBody(
+  field: "ids" | "codes",
+  values: string[] | undefined,
+  max: number,
+  noun: string,
+  output: GeoOutputInput = {},
+): Record<string, unknown> {
+  const body: Record<string, unknown> = { [field]: normalizeBatchList(values, max, noun) };
+  if (output.format) body.format = output.format;
+  if (output.geometry) body.geometry = output.geometry;
+  return body;
+}

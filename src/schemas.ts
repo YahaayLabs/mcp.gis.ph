@@ -1,5 +1,9 @@
 import { z } from "zod";
 import {
+  BATCH_BARANGAY_CODES_MAX,
+  BATCH_MUNICITY_CODES_MAX,
+  BATCH_PROVINCE_CODES_MAX,
+  BATCH_REGION_IDS_MAX,
   DATASET_DATA_TYPES,
   DATASET_VISIBILITIES,
   FORMATS,
@@ -129,5 +133,29 @@ export const nameSearchShape = {
     .describe("Search query (min 2 characters). For barangays, spaces and commas split tokens and every token must match."),
   limit: z.number().int().min(1).optional()
     .describe("Max results to return (API default 20)"),
+};
+
+export const searchRegionsByIdsShape = {
+  ids: z.array(z.string().trim().min(1)).min(1).max(BATCH_REGION_IDS_MAX)
+    .describe("Region identifiers (PSGC codes). This endpoint uses `ids`, not `codes`. Max 100."),
+  ...geoOutputShape,
+};
+
+export const searchProvincesByCodesShape = {
+  codes: z.array(z.string().trim().min(1)).min(1).max(BATCH_PROVINCE_CODES_MAX)
+    .describe("Province PSGC codes. Max 100."),
+  ...geoOutputShape,
+};
+
+export const searchMunicitiesByCodesShape = {
+  codes: z.array(z.string().trim().min(1)).min(1).max(BATCH_MUNICITY_CODES_MAX)
+    .describe("City/municipality PSGC codes. Max 1000."),
+  ...geoOutputShape,
+};
+
+export const searchBarangaysByCodesShape = {
+  codes: z.array(z.string().trim().min(1)).min(1).max(BATCH_BARANGAY_CODES_MAX)
+    .describe("Barangay PSGC codes. Max 500."),
+  ...geoOutputShape,
 };
 

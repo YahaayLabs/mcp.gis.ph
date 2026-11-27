@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   BARANGAY_GEOJSON_NEEDS_MUNICIPALITY,
+  BATCH_BARANGAY_CODES_MAX,
+  BATCH_MUNICITY_CODES_MAX,
+  BATCH_PROVINCE_CODES_MAX,
+  BATCH_REGION_IDS_MAX,
   MUNICITY_PARENT_REQUIRED,
   NAME_SEARCH_Q_REQUIRED,
   barangayParams,
+  batchListEmptyMessage,
+  batchListItemMessage,
+  batchListMaxMessage,
+  batchSearchBody,
   datasetListParams,
   geoOutputParams,
   municityListParams,
@@ -221,6 +229,59 @@ describe("nameSearchParams", () => {
     expect(nameSearchParams({ q: "Tag", limit: 5 })).toEqual({ q: "Tag", limit: "5" });
     expect(nameSearchParams({ q: "Tag", limit: 0 })).toEqual({ q: "Tag", limit: "1" });
     expect(nameSearchParams({ q: "Tag", limit: 7.9 })).toEqual({ q: "Tag", limit: "7" });
+  });
+});
+
+describe("batchSearchBody", () => {
+  it("uses ids for regions and codes for the other levels", () => {
+    expect(batchSearchBody("ids", ["0700000000"], BATCH_REGION_IDS_MAX, "id")).toEqual({
+      ids: ["0700000000"],
+    });
+    expect(batchSearchBody("codes", ["0701200000"], BATCH_PROVINCE_CODES_MAX, "code")).toEqual({
+      codes: ["0701200000"],
+    });
+    expect(batchSearchBody("codes", ["0701242000"], BATCH_MUNICITY_CODES_MAX, "code")).toHaveProperty("codes");
+    expect(batchSearchBody("codes", ["0701201001"], BATCH_BARANGAY_CODES_MAX, "code")).toHaveProperty("codes");
+  });
+
+  it("trims values and rejects empty items instead of dropping them", () => {
+    expect(batchSearchBody("ids", ["  0700000000  "], BATCH_REGION_IDS_MAX, "id")).toEqual({
+      ids: ["0700000000"],
+    });
+    expect(() => batchSearchBody("ids", ["0700000000", "  "], BATCH_REGION_IDS_MAX, "id")).toThrow(
+      batchListItemMessage("id"),
+    );
+    expect(() => batchSearchBody("codes", [], BATCH_PROVINCE_CODES_MAX, "code")).toThrow(
+      batchListEmptyMessage("code"),
+    );
+    expect(() => batchSearchBody("codes", undefined, BATCH_PROVINCE_CODES_MAX, "code")).toThrow(
+      batchListEmptyMessage("code"),
+    );
+  });
+
+  it("enforces the OpenAPI max for each resource", () => {
+    const tooManyRegions = Array.from({ length: BATCH_REGION_IDS_MAX + 1 }, (_, i) => String(i + 1).padStart(10, "0"));
+    expect(() => batchSearchBody("ids", tooManyRegions, BATCH_REGION_IDS_MAX, "id")).toThrow(
+      batchListMaxMessage("id", BATCH_REGION_IDS_MAX),
+    );
+    const okRegions = tooManyRegions.slice(0, BATCH_REGION_IDS_MAX);
+    expect(batchSearchBody("ids", okRegions, BATCH_REGION_IDS_MAX, "id").ids).toHaveLength(BATCH_REGION_IDS_MAX);
+
+    const tooManyMunicities = Array.from({ length: BATCH_MUNICITY_CODES_MAX + 1 }, (_, i) => String(i + 1));
+    expect(() => batchSearchBody("codes", tooManyMunicities, BATCH_MUNICITY_CODES_MAX, "code")).toThrow(
+      batchListMaxMessage("code", BATCH_MUNICITY_CODES_MAX),
+    );
+  });
+
+  it("sends format and geometry only when set, and never sends output", () => {
+    const body = batchSearchBody("codes", ["0701200000"], BATCH_PROVINCE_CODES_MAX, "code", {
+      format: "geojson",
+      geometry: "simple",
+    });
+    expect(body).toEqual({ codes: ["0701200000"], format: "geojson", geometry: "simple" });
+    expect(body).not.toHaveProperty("output");
+    expect(batchSearchBody("ids", ["0700000000"], BATCH_REGION_IDS_MAX, "id")).not.toHaveProperty("format");
+    expect(batchSearchBody("ids", ["0700000000"], BATCH_REGION_IDS_MAX, "id")).not.toHaveProperty("geometry");
   });
 });
 
