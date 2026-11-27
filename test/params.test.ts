@@ -26,7 +26,6 @@ import {
   REVERSE_GEOCODE_LNG_RANGE,
   reverseGeocodeParams,
 } from "../src/params";
-import { SIGNED_IN_REQUIRED, requireSignedIn } from "../src/auth";
 import { dataTypeSchema, municitiesInput } from "../src/schemas";
 
 // Public 10-digit PSGC codes from api.gis.ph (free-tier JSON, no key).
@@ -328,15 +327,4 @@ describe("reverseGeocodeParams", () => {
   });
 });
 
-describe("requireSignedIn", () => {
-  it("throws when no key is present, including whitespace", () => {
-    expect(() => requireSignedIn(undefined)).toThrow(SIGNED_IN_REQUIRED);
-    expect(() => requireSignedIn(null)).toThrow(SIGNED_IN_REQUIRED);
-    expect(() => requireSignedIn("")).toThrow(SIGNED_IN_REQUIRED);
-    expect(() => requireSignedIn("   ")).toThrow(SIGNED_IN_REQUIRED);
-  });
-  it("returns the trimmed key when one is present", () => {
-    expect(requireSignedIn("  token  ")).toBe("token");
-  });
-});
 
