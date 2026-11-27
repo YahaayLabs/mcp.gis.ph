@@ -105,9 +105,23 @@ describe("anonymous", () => {
     const res = await post(rpc("tools/list"));
     const names = (await messages(res))[0].result.tools.map((t: { name: string }) => t.name);
     expect(names).toContain("get_provinces");
+    expect(names).toContain("search_municities");
+    expect(names).toContain("search_barangays");
     expect(names).toContain("list_datasets");
     for (const w of ["create_dataset", "update_dataset", "create_feature"]) expect(names).not.toContain(w);
   });
+  it.each(["search_municities", "search_barangays"])(
+    "%s works anonymously (free-tier name search)",
+    async (name) => {
+      const res = await post(call(name, { q: "cebu" }));
+      expect(res.status).toBe(200);
+      const [m] = await messages(res);
+      expect(m.result.isError).toBeFalsy();
+      expect(upstream).toHaveLength(1);
+      expect(upstream[0]!.url).toContain(name === "search_municities" ? "/v1/municities/search" : "/v1/barangays/search");
+      expect(upstream[0]!.headers.Authorization).toBe(`Bearer ${SERVICE}`);
+    },
+  );
   it("get_provinces works and goes upstream with service key + opaque client key", async () => {
     const res = await post(call("get_provinces"));
     expect(res.status).toBe(200);

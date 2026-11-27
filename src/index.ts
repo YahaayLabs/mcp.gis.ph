@@ -7,6 +7,7 @@ import {
   datasetListParams,
   geoOutputParams,
   municityListParams,
+  nameSearchParams,
   provinceGetParams,
   provinceListParams,
   regionListParams,
@@ -17,6 +18,7 @@ import {
   geoOutputShape,
   listDatasetsShape,
   municitiesInput,
+  nameSearchShape,
   provinceShape,
   provincesShape,
   regionsShape,
@@ -131,6 +133,21 @@ function buildMcpServer(apiKey: UpstreamAuth): McpServer {
     { barangay_code: z.string().describe("Barangay PSGC code"), ...geoOutputShape },
     async ({ barangay_code, ...rest }) =>
       json(await gisApi(`/barangays/${encodeURIComponent(barangay_code)}`, apiKey, { params: geoOutputParams(rest) }))
+  );
+
+  // ── Name search (anonymous free-tier JSON) ─────────────────────────────
+  server.tool(
+    "search_municities",
+    "Search cities and municipalities by name across all provinces (GET /v1/municities/search). Anonymous free-tier tool.",
+    nameSearchShape,
+    async (input) => json(await gisApi("/municities/search", apiKey, { params: nameSearchParams(input) })),
+  );
+
+  server.tool(
+    "search_barangays",
+    "Search barangays by name across all provinces (GET /v1/barangays/search). Multi-word queries are tokenized on spaces and commas; every token must match. Anonymous free-tier tool.",
+    nameSearchShape,
+    async (input) => json(await gisApi("/barangays/search", apiKey, { params: nameSearchParams(input) })),
   );
 
   // ── Datasets ───────────────────────────────────────────────────────────

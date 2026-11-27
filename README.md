@@ -20,6 +20,8 @@ Tool parameters use the same names as the [api.gis.ph](https://api.gis.ph/refere
 | `get_municity` | `GET /v1/municities/{id}` | `municity_code` (required), `format`, `geometry` |
 | `get_barangays` | `GET /v1/barangays` | `municipality_code` (enough on its own), `municipality` (name, starts-with), `province_code`, `province` (exact name), `name` (barangay, starts-with), `format`, `geometry`, `limit`, `page`. `municity_code` is a deprecated alias of `municipality_code`. `format=geojson` needs `municipality_code` or `municipality`. |
 | `get_barangay` | `GET /v1/barangays/{id}` | `barangay_code` (required), `format`, `geometry` |
+| `search_municities` | `GET /v1/municities/search` | `q` (required, min 2 chars), `limit` (API default 20). Anonymous free-tier tool. |
+| `search_barangays` | `GET /v1/barangays/search` | `q` (required, min 2 chars; tokens split on spaces/commas), `limit` (API default 20). Anonymous free-tier tool. |
 | `list_datasets` | `GET /v1/datasets` | `visibility` (`mine` default \| `private` \| `all` \| `public`), `include_features`, `limit`, `page` |
 | `get_dataset` | `GET /v1/datasets/{id}` | `dataset_id` (required) |
 | `create_dataset` | `POST /v1/datasets` | `name` (required), `description`, `data_type` (`vector` \| `raster` \| `data`), `geometry_type`, `srid` |
@@ -36,7 +38,7 @@ Shared options:
 - `geometry`: `simple` \| `medium` \| `detailed`. Omitted by default, so JSON responses carry no boundaries.
 - `extent` (provinces): `administrative` (API default, component LGUs only) or `geographic` (also HUC/ICC cities hosted by the province).
 
-There are no search, reverse-geocode, places, politicians or demographics tools yet.
+Name search (`search_municities`, `search_barangays`) is in the anonymous free-tier set. There are no reverse-geocode, places, politicians or demographics tools yet.
 
 ---
 

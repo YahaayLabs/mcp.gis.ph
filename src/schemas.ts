@@ -7,6 +7,7 @@ import {
   MAX_LIST_LIMIT,
   MUNICITY_PARENT_REQUIRED,
   MUNICITY_SCOPES,
+  NAME_SEARCH_Q_MIN,
   PROVINCE_EXTENTS,
   hasMunicityParent,
 } from "./params";
@@ -122,3 +123,11 @@ export const listDatasetsShape = {
 };
 
 export const dataTypeSchema = z.enum(DATASET_DATA_TYPES);
+
+export const nameSearchShape = {
+  q: z.string().trim().min(NAME_SEARCH_Q_MIN)
+    .describe("Search query (min 2 characters). For barangays, spaces and commas split tokens and every token must match."),
+  limit: z.number().int().min(1).optional()
+    .describe("Max results to return (API default 20)"),
+};
+

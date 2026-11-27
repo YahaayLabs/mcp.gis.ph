@@ -169,3 +169,28 @@ export function datasetListParams(input: DatasetListInput): Params {
     ...defined({ includeFeatures: input.include_features ? "true" : undefined, visibility: input.visibility }),
   };
 }
+
+export const NAME_SEARCH_Q_MIN = 2;
+export const NAME_SEARCH_Q_REQUIRED = "q must be at least 2 characters.";
+
+export interface NameSearchInput {
+  q: string;
+  limit?: number;
+}
+
+/**
+ * Query params for GET /v1/municities/search and GET /v1/barangays/search.
+ * `q` is required (min 2 chars). `limit` is sent only when the caller sets it,
+ * so the API default (20) applies otherwise. No invented max.
+ */
+export function nameSearchParams(input: NameSearchInput): Params {
+  const q = input.q?.trim() ?? "";
+  if (q.length < NAME_SEARCH_Q_MIN) throw new Error(NAME_SEARCH_Q_REQUIRED);
+  const params: Params = { q };
+  if (input.limit !== undefined) {
+    const n = Math.max(Math.trunc(input.limit), 1);
+    params.limit = String(n);
+  }
+  return params;
+}
+

@@ -11,6 +11,7 @@ export const ANONYMOUS_TOOLS = [
   "get_provinces", "get_province",
   "get_municities", "get_municity",
   "get_barangays", "get_barangay",
+  "search_municities", "search_barangays",
 ] as const;
 
 /** Read-only tools that need OAuth sign-in or an API key. */
