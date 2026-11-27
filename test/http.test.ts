@@ -107,6 +107,10 @@ describe("anonymous", () => {
     expect(names).toContain("get_provinces");
     expect(names).toContain("search_municities");
     expect(names).toContain("search_barangays");
+    expect(names).toContain("search_regions_by_ids");
+    expect(names).toContain("search_provinces_by_codes");
+    expect(names).toContain("search_municities_by_codes");
+    expect(names).toContain("search_barangays_by_codes");
     expect(names).toContain("list_datasets");
     for (const w of ["create_dataset", "update_dataset", "create_feature"]) expect(names).not.toContain(w);
   });
@@ -133,10 +137,13 @@ describe("anonymous", () => {
     expect(upstream[0]!.headers["X-MCP-Client-Key"]).toMatch(/^mcp1-[0-9a-f]{40}$/);
     expect(JSON.stringify(upstream[0])).not.toContain("198.51.100.7");
   });
-  it.each(["list_datasets", "get_dataset", "list_features", "get_feature", "get_features_by_dataset"])(
+  it.each([
+    "list_datasets", "get_dataset", "list_features", "get_feature", "get_features_by_dataset",
+    "search_regions_by_ids", "search_provinces_by_codes", "search_municities_by_codes", "search_barangays_by_codes",
+  ])(
     "%s needs sign-in: 401 + challenge without error=",
     async (name) => {
-      const res = await post(call(name, { id: "x" }));
+      const res = await post(call(name, { id: "x", ids: ["01"], codes: ["133900000"] }));
       expect(res.status).toBe(401);
       const h = res.headers.get("www-authenticate")!;
       expect(h).toMatch(/^Bearer /);
