@@ -254,3 +254,45 @@ export function batchSearchBody(
   if (output.geometry) body.geometry = output.geometry;
   return body;
 }
+
+export const REVERSE_GEOCODE_LEVELS = ["region", "province", "municity", "barangay"] as const;
+export type ReverseGeocodeLevel = (typeof REVERSE_GEOCODE_LEVELS)[number];
+
+export const REVERSE_GEOCODE_LATLNG_REQUIRED = "reverse_geocode requires lat and lng.";
+export const REVERSE_GEOCODE_LAT_RANGE = "lat must be between -90 and 90.";
+export const REVERSE_GEOCODE_LNG_RANGE = "lng must be between -180 and 180.";
+export const REVERSE_GEOCODE_LEVELS_INVALID =
+  "levels must be a comma-separated list of region, province, municity, barangay.";
+
+export interface ReverseGeocodeInput {
+  lat: number;
+  lng: number;
+  /** Comma-separated: region,province,municity,barangay. Omit for all levels. */
+  levels?: string;
+  /** PIP boundary resolution; API default is simple. */
+  geometry?: GeometryLevel;
+}
+
+/**
+ * Query params for GET /v1/geocode/reverse.
+ * lat and lng are required in the MCP tool (OpenAPI leaves them optional).
+ * levels and geometry are sent only when set. There is no `format` or `output` param.
+ */
+export function reverseGeocodeParams(input: ReverseGeocodeInput): Params {
+  if (typeof input.lat !== "number" || Number.isNaN(input.lat) || typeof input.lng !== "number" || Number.isNaN(input.lng)) {
+    throw new Error(REVERSE_GEOCODE_LATLNG_REQUIRED);
+  }
+  if (input.lat < -90 || input.lat > 90) throw new Error(REVERSE_GEOCODE_LAT_RANGE);
+  if (input.lng < -180 || input.lng > 180) throw new Error(REVERSE_GEOCODE_LNG_RANGE);
+  const params: Params = { lat: String(input.lat), lng: String(input.lng) };
+  if (input.levels !== undefined) {
+    const parts = input.levels.split(",").map((s) => s.trim()).filter(Boolean);
+    const allowed = new Set<string>(REVERSE_GEOCODE_LEVELS);
+    if (parts.length === 0 || parts.some((p) => !allowed.has(p))) {
+      throw new Error(REVERSE_GEOCODE_LEVELS_INVALID);
+    }
+    params.levels = parts.join(",");
+  }
+  if (input.geometry) params.geometry = input.geometry;
+  return params;
+}

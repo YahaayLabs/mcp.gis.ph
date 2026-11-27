@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { Hono } from "hono";
 import { z } from "zod";
+import { requireSignedIn } from "./auth";
 import {
   BATCH_BARANGAY_CODES_MAX,
   BATCH_MUNICITY_CODES_MAX,
@@ -16,6 +17,7 @@ import {
   provinceGetParams,
   provinceListParams,
   regionListParams,
+  reverseGeocodeParams,
 } from "./params";
 import {
   barangaysShape,
@@ -31,6 +33,7 @@ import {
   searchMunicitiesByCodesShape,
   searchProvincesByCodesShape,
   searchRegionsByIdsShape,
+  reverseGeocodeShape,
 } from "./schemas";
 
 export interface Env {
@@ -200,6 +203,18 @@ function buildMcpServer(apiKey: string): McpServer {
       })),
   );
 
+
+  // ── Reverse geocode (signed-in, read-only) ─────────────────────────────
+  server.tool(
+    "reverse_geocode",
+    "Reverse geocode a WGS84 point to the admin hierarchy (GET /v1/geocode/reverse). Signed-in, read-only; not anonymous. Today this checks for a forwarded API key or Bearer; later it will require the OAuth read:boundaries scope.",
+    reverseGeocodeShape,
+    async (input) => {
+      requireSignedIn(apiKey);
+      return json(await gisApi("/geocode/reverse", apiKey, { params: reverseGeocodeParams(input) }));
+    },
+  );
+
   // ── Datasets ───────────────────────────────────────────────────────────
   server.tool(
     "list_datasets",
@@ -305,6 +320,7 @@ app.get("/", (c) =>
       "search_municities", "search_barangays",
       "search_regions_by_ids", "search_provinces_by_codes",
       "search_municities_by_codes", "search_barangays_by_codes",
+      "reverse_geocode",
       "list_datasets", "get_dataset", "create_dataset", "update_dataset",
       "list_features", "get_feature", "get_features_by_dataset", "create_feature",
     ],
