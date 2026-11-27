@@ -17,7 +17,6 @@ import {
   geoOutputShape,
   listDatasetsShape,
   municitiesInput,
-  municitiesShape,
   provinceShape,
   provincesShape,
   regionsShape,
@@ -70,7 +69,7 @@ function buildMcpServer(apiKey: UpstreamAuth): McpServer {
   // ── Regions ────────────────────────────────────────────────────────────
   server.tool(
     "get_regions",
-    "Get regions in the Philippines (paginated, default limit 100 so all 17 fit on one page)",
+    "Get all regions in the Philippines (paginated, default limit 100 so they fit on one page)",
     regionsShape,
     async (input) => json(await gisApi("/regions", apiKey, { params: regionListParams(input) }))
   );
@@ -100,15 +99,14 @@ function buildMcpServer(apiKey: UpstreamAuth): McpServer {
   );
 
   // ── Municities ─────────────────────────────────────────────────────────
-  server.tool(
+  // registerTool (not tool()) so a Zod union is accepted and advertised in tools/list.
+  server.registerTool(
     "get_municities",
-    "Get cities and municipalities in a province. Requires province_code (preferred) or province (exact name). Paginated; response meta has total and next page",
-    municitiesShape,
-    async (raw) => {
-      const parsed = municitiesInput.safeParse(raw);
-      if (!parsed.success) throw new Error(parsed.error.issues.map((i) => i.message).join("; "));
-      return json(await gisApi("/municities", apiKey, { params: municityListParams(parsed.data) }));
-    }
+    {
+      description: "Get cities and municipalities in a province. Requires province_code (preferred) or province (exact name). Paginated; response meta has total and next page",
+      inputSchema: municitiesInput,
+    },
+    async (input) => json(await gisApi("/municities", apiKey, { params: municityListParams(input) })),
   );
 
   server.tool(

@@ -169,12 +169,3 @@ export function datasetListParams(input: DatasetListInput): Params {
     ...defined({ includeFeatures: input.include_features ? "true" : undefined, visibility: input.visibility }),
   };
 }
-
-/** Pull the province code out of a GET /v1/municities/{code} response. */
-export function provinceCodeFromMunicity(body: unknown): string | undefined {
-  const data = (body as { data?: Record<string, unknown> } | null)?.data ?? (body as Record<string, unknown> | null);
-  if (!data || typeof data !== "object") return undefined;
-  const d = data as Record<string, unknown>;
-  const code = d.host_province_code ?? d.p_code ?? d.province_code;
-  return typeof code === "string" && code ? code : undefined;
-}
