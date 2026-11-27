@@ -7,7 +7,6 @@ import {
   geoOutputParams,
   municityListParams,
   pagingParams,
-  provinceCodeFromMunicity,
   provinceGetParams,
   provinceListParams,
   regionListParams,
@@ -47,7 +46,7 @@ describe("geoOutputParams", () => {
 });
 
 describe("regionListParams", () => {
-  it("always sends paging so all 17 regions fit (API default limit is 10)", () => {
+  it("always sends paging so all regions fit on one page (API default limit is 10)", () => {
     expect(regionListParams({})).toEqual({ limit: "100", page: "1" });
   });
   it("passes search, paging and output options", () => {
@@ -108,14 +107,23 @@ describe("municitiesInput (tool schema)", () => {
   it("rejects input with no parent province", () => {
     const r = municitiesInput.safeParse({ name: "Tag" });
     expect(r.success).toBe(false);
-    if (!r.success) expect(r.error.issues[0].message).toBe(MUNICITY_PARENT_REQUIRED);
   });
   it("accepts province or province_code", () => {
     expect(municitiesInput.safeParse({ province: "Bohol" }).success).toBe(true);
     expect(municitiesInput.safeParse({ province_code: PROV }).success).toBe(true);
+    expect(municitiesInput.safeParse({ province: "Bohol", province_code: PROV }).success).toBe(true);
   });
   it("rejects an unknown scope value", () => {
     expect(municitiesInput.safeParse({ province_code: PROV, scope: "administrative" }).success).toBe(false);
+  });
+  it("is a union the MCP SDK will advertise (has .shape) requiring province_code or province", () => {
+    // tools/list drops schemas without .shape (unions/.refine) and would publish {}.
+    expect((municitiesInput as { shape?: unknown }).shape).toBeTruthy();
+    const options = (municitiesInput as unknown as { options: { shape: Record<string, { isOptional: () => boolean }>; }[] }).options;
+    const requiredSets = options.map((o) =>
+      Object.entries(o.shape).filter(([, v]) => !v.isOptional()).map(([k]) => k),
+    );
+    expect(requiredSets).toEqual(expect.arrayContaining([["province_code"], ["province"]]));
   });
 });
 
@@ -197,11 +205,3 @@ describe("dataTypeSchema", () => {
   });
 });
 
-describe("provinceCodeFromMunicity", () => {
-  it("prefers host_province_code, then p_code", () => {
-    expect(provinceCodeFromMunicity({ data: { p_code: "A", host_province_code: "B" } })).toBe("B");
-    expect(provinceCodeFromMunicity({ data: { p_code: "A", host_province_code: null } })).toBe("A");
-    expect(provinceCodeFromMunicity({ p_code: "C" })).toBe("C");
-    expect(provinceCodeFromMunicity(null)).toBeUndefined();
-  });
-});

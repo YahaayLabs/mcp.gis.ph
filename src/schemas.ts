@@ -51,11 +51,7 @@ export const provinceShape = {
   ...geoOutputShape,
 };
 
-export const municitiesShape = {
-  province_code: z.string().optional()
-    .describe("Province PSGC code (preferred). Required unless province is given; wins if both are set"),
-  province: z.string().optional()
-    .describe("Exact province name, case-insensitive. Required unless province_code is given"),
+const municityFilters = {
   scope: z.enum(MUNICITY_SCOPES).optional().describe(
     "'geographic' (API default) includes HUC/ICC cities hosted in the province; 'admin' only LGUs whose admin parent is the province"
   ),
@@ -64,10 +60,46 @@ export const municitiesShape = {
   ...pagingShape,
 };
 
-/** GET /v1/municities requires province_code and/or province. */
-export const municitiesInput = z
-  .object(municitiesShape)
-  .refine(hasMunicityParent, { message: MUNICITY_PARENT_REQUIRED, path: ["province_code"] });
+/** Shared shape for docs and for the SDK advertisement helper below. */
+export const municitiesShape = {
+  province_code: z.string().optional()
+    .describe("Province PSGC code (preferred). Required unless province is given; wins if both are set"),
+  province: z.string().optional()
+    .describe("Exact province name, case-insensitive. Required unless province_code is given"),
+  ...municityFilters,
+};
+
+/**
+ * The MCP SDK's tools/list only advertises schemas that look like a Zod object
+ * (`normalizeObjectSchema` requires `.shape`). Unions and `.refine()` effects
+ * would otherwise be published as an empty object. Tag the schema with the
+ * shared property shape so the union's anyOf (required province_code | province)
+ * is what clients see.
+ */
+function advertiseMcpObjectSchema<T extends z.ZodTypeAny>(schema: T, shape: Record<string, z.ZodTypeAny>): T {
+  if (!("shape" in schema) || (schema as { shape?: unknown }).shape === undefined) {
+    Object.defineProperty(schema, "shape", { value: shape, enumerable: false });
+  }
+  return schema;
+}
+
+const municitiesByCode = z.object({
+  province_code: z.string().describe("Province PSGC code (preferred). Wins if both province_code and province are set"),
+  province: z.string().optional().describe("Exact province name, case-insensitive"),
+  ...municityFilters,
+});
+
+const municitiesByName = z.object({
+  province: z.string().describe("Exact province name, case-insensitive. Use this when province_code is not available"),
+  province_code: z.string().optional().describe("Province PSGC code (preferred when known; wins if both are set)"),
+  ...municityFilters,
+});
+
+/** GET /v1/municities requires province_code and/or province. Advertised as a JSON Schema anyOf. */
+export const municitiesInput = advertiseMcpObjectSchema(
+  z.union([municitiesByCode, municitiesByName]).describe(MUNICITY_PARENT_REQUIRED),
+  municitiesShape,
+);
 
 export const barangaysShape = {
   municipality_code: z.string().optional()
