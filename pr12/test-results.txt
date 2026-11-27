@@ -1,0 +1,22 @@
+YahaayLabs/mcp.gis.ph feat/7-post6-nits
+Tests run: Friday 27 Nov 2026, 9:11 PM Australia/Sydney
+Command: pnpm test && pnpm typecheck
+
+
+> gis.ph-mcp@1.0.0 test /workspace/mcp-gisph-7
+> vitest run
+
+
+ RUN  v2.1.9 /workspace/mcp-gisph-7
+
+ ✓ test/params.test.ts (32 tests) 9ms
+
+ Test Files  1 passed (1)
+      Tests  32 passed (32)
+   Start at  21:11:06
+   Duration  318ms (transform 114ms, setup 0ms, collect 95ms, tests 9ms, environment 0ms, prepare 69ms)
+
+
+> gis.ph-mcp@1.0.0 typecheck /workspace/mcp-gisph-7
+> tsc --noEmit
+

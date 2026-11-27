@@ -1,0 +1,22 @@
+YahaayLabs/mcp.gis.ph feat/8-name-search
+Tests run: Friday 27 Nov 2026, 9:15 PM Australia/Sydney
+Command: pnpm test && pnpm typecheck
+
+
+> gis.ph-mcp@1.0.0 test /workspace/mcp-gisph-8
+> vitest run
+
+
+ RUN  v2.1.9 /workspace/mcp-gisph-8
+
+ ✓ test/params.test.ts (35 tests) 10ms
+
+ Test Files  1 passed (1)
+      Tests  35 passed (35)
+   Start at  21:15:12
+   Duration  279ms (transform 98ms, setup 0ms, collect 92ms, tests 10ms, environment 0ms, prepare 65ms)
+
+
+> gis.ph-mcp@1.0.0 typecheck /workspace/mcp-gisph-8
+> tsc --noEmit
+

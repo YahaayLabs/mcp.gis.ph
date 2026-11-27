@@ -1,0 +1,22 @@
+YahaayLabs/mcp.gis.ph feat/10-reverse-geocode
+Tests run: Friday 27 Nov 2026, 9:23 PM Australia/Sydney
+Command: pnpm test && pnpm typecheck
+
+
+> gis.ph-mcp@1.0.0 test /workspace/mcp-gisph-10
+> vitest run
+
+
+ RUN  v2.1.9 /workspace/mcp-gisph-10
+
+ ✓ test/params.test.ts (43 tests) 18ms
+
+ Test Files  1 passed (1)
+      Tests  43 passed (43)
+   Start at  21:23:42
+   Duration  338ms (transform 106ms, setup 0ms, collect 106ms, tests 18ms, environment 0ms, prepare 62ms)
+
+
+> gis.ph-mcp@1.0.0 typecheck /workspace/mcp-gisph-10
+> tsc --noEmit
+
