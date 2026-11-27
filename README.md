@@ -26,6 +26,7 @@ Tool parameters use the same names as the [api.gis.ph](https://api.gis.ph/refere
 | `search_provinces_by_codes` | `POST /v1/provinces/search` | **`codes` required** (max 100), `format`, `geometry`. Live API returns 401 without a key. |
 | `search_municities_by_codes` | `POST /v1/municities/search` | **`codes` required** (max 1000), `format`, `geometry`. Live API returns 401 without a key. |
 | `search_barangays_by_codes` | `POST /v1/barangays/search` | **`codes` required** (max 500), `format`, `geometry`. Live API returns 401 without a key. |
+| `reverse_geocode` | `GET /v1/geocode/reverse` | **`lat` and `lng` required** (WGS84), `levels` (comma-separated: region,province,municity,barangay; default all), `geometry` (PIP resolution; API default simple). Signed-in, read-only; not anonymous. Later: OAuth `read:boundaries`. |
 | `list_datasets` | `GET /v1/datasets` | `visibility` (`mine` default \| `private` \| `all` \| `public`), `include_features`, `limit`, `page` |
 | `get_dataset` | `GET /v1/datasets/{id}` | `dataset_id` (required) |
 | `create_dataset` | `POST /v1/datasets` | `name` (required), `description`, `data_type` (`vector` \| `raster` \| `data`), `geometry_type`, `srid` |
@@ -42,7 +43,7 @@ Shared options:
 - `geometry`: `simple` \| `medium` \| `detailed`. Omitted by default, so JSON responses carry no boundaries.
 - `extent` (provinces): `administrative` (API default, component LGUs only) or `geographic` (also HUC/ICC cities hosted by the province).
 
-Name search (`search_municities`, `search_barangays`) is in the anonymous free-tier set. Batch lookup by ids/codes requires a key: the live API returns 401 without one, even for `format=json` and omitted geometry. There are no reverse-geocode, places, politicians or demographics tools yet.
+Name search (`search_municities`, `search_barangays`) is in the anonymous free-tier set. Batch lookup by ids/codes requires a key: the live API returns 401 without one, even for `format=json` and omitted geometry. `reverse_geocode` is a signed-in, read-only tool (not anonymous); today it checks for a forwarded API key or Bearer, and later it will require the OAuth `read:boundaries` scope. There are no places, politicians or demographics tools yet.
 
 ---
 

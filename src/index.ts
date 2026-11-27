@@ -16,6 +16,7 @@ import {
   provinceGetParams,
   provinceListParams,
   regionListParams,
+  reverseGeocodeParams,
 } from "./params";
 import {
   barangaysShape,
@@ -31,6 +32,7 @@ import {
   searchMunicitiesByCodesShape,
   searchProvincesByCodesShape,
   searchRegionsByIdsShape,
+  reverseGeocodeShape,
 } from "./schemas";
 import { handleMcp, registerAuthRoutes, discoveryAuth, type UpstreamAuth } from "./http";
 import type { McpEnv } from "./config";
@@ -203,6 +205,15 @@ function buildMcpServer(apiKey: UpstreamAuth): McpServer {
         method: "POST",
         body: batchSearchBody("codes", input.codes, BATCH_BARANGAY_CODES_MAX, "code", input),
       })),
+  );
+
+
+  // ── Reverse geocode (signed-in, read-only) ─────────────────────────────
+  server.tool(
+    "reverse_geocode",
+    "Reverse geocode a WGS84 point to the admin hierarchy (GET /v1/geocode/reverse). Signed-in, read-only; not anonymous. Requires OAuth or an API key (read:boundaries on the API).",
+    reverseGeocodeShape,
+    async (input) => json(await gisApi("/geocode/reverse", apiKey, { params: reverseGeocodeParams(input) })),
   );
 
   // ── Datasets ───────────────────────────────────────────────────────────

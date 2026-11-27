@@ -20,6 +20,11 @@ import {
   provinceGetParams,
   provinceListParams,
   regionListParams,
+  REVERSE_GEOCODE_LAT_RANGE,
+  REVERSE_GEOCODE_LATLNG_REQUIRED,
+  REVERSE_GEOCODE_LEVELS_INVALID,
+  REVERSE_GEOCODE_LNG_RANGE,
+  reverseGeocodeParams,
 } from "../src/params";
 import { dataTypeSchema, municitiesInput } from "../src/schemas";
 
@@ -284,4 +289,42 @@ describe("batchSearchBody", () => {
     expect(batchSearchBody("ids", ["0700000000"], BATCH_REGION_IDS_MAX, "id")).not.toHaveProperty("geometry");
   });
 });
+
+describe("reverseGeocodeParams", () => {
+  it("requires numeric lat and lng in range and always sends them", () => {
+    expect(reverseGeocodeParams({ lat: 10.3157, lng: 123.8854 })).toEqual({
+      lat: "10.3157",
+      lng: "123.8854",
+    });
+    expect(() => reverseGeocodeParams({ lat: Number.NaN, lng: 123 })).toThrow(REVERSE_GEOCODE_LATLNG_REQUIRED);
+    expect(() => reverseGeocodeParams({ lat: 91, lng: 0 })).toThrow(REVERSE_GEOCODE_LAT_RANGE);
+    expect(() => reverseGeocodeParams({ lat: -90.1, lng: 0 })).toThrow(REVERSE_GEOCODE_LAT_RANGE);
+    expect(() => reverseGeocodeParams({ lat: 0, lng: 181 })).toThrow(REVERSE_GEOCODE_LNG_RANGE);
+    expect(() => reverseGeocodeParams({ lat: 0, lng: -180.1 })).toThrow(REVERSE_GEOCODE_LNG_RANGE);
+    expect(reverseGeocodeParams({ lat: -90, lng: -180 })).toEqual({ lat: "-90", lng: "-180" });
+    expect(reverseGeocodeParams({ lat: 90, lng: 180 })).toEqual({ lat: "90", lng: "180" });
+  });
+
+  it("sends levels and geometry only when set, and never format or output", () => {
+    const p = reverseGeocodeParams({
+      lat: 10.3157,
+      lng: 123.8854,
+      levels: " region, municity ",
+      geometry: "simple",
+    });
+    expect(p).toEqual({
+      lat: "10.3157",
+      lng: "123.8854",
+      levels: "region,municity",
+      geometry: "simple",
+    });
+    expect(p).not.toHaveProperty("format");
+    expect(p).not.toHaveProperty("output");
+    expect(() => reverseGeocodeParams({ lat: 0, lng: 0, levels: "" })).toThrow(REVERSE_GEOCODE_LEVELS_INVALID);
+    expect(() => reverseGeocodeParams({ lat: 0, lng: 0, levels: "region,city" })).toThrow(
+      REVERSE_GEOCODE_LEVELS_INVALID,
+    );
+  });
+});
+
 

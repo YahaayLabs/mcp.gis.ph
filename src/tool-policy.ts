@@ -20,6 +20,7 @@ export const SIGNED_IN_TOOLS = [
   "list_features", "get_feature", "get_features_by_dataset",
   "search_regions_by_ids", "search_provinces_by_codes",
   "search_municities_by_codes", "search_barangays_by_codes",
+  "reverse_geocode",
 ] as const;
 
 /** Write tools disabled for this launch for everyone (the API also 403s them for MCP). */

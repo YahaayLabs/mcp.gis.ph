@@ -159,3 +159,14 @@ export const searchBarangaysByCodesShape = {
   ...geoOutputShape,
 };
 
+export const reverseGeocodeShape = {
+  lat: z.number().min(-90).max(90).describe("WGS84 latitude"),
+  lng: z.number().min(-180).max(180).describe("WGS84 longitude"),
+  levels: z.string().optional().describe(
+    "Comma-separated admin levels to return: region, province, municity, barangay. Default: all levels.",
+  ),
+  geometry: z.enum(GEOMETRY_LEVELS).optional().describe(
+    "Boundary resolution used for point-in-polygon (simple is fastest; API default simple)",
+  ),
+};
+
