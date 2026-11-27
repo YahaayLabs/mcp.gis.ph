@@ -1,0 +1,24 @@
+YahaayLabs/mcp.gis.ph feat/1-align-openapi-tools
+Tests run: Friday 27 Nov 2026, 8:07 PM Australia/Sydney
+Command: pnpm test && pnpm typecheck
+Host: box (after review fix of Tagbilaran PSGC fixture to 0701242000)
+
+
+> gis.ph-mcp@1.0.0 test /workspace/mcp.gis.ph
+> vitest run
+
+
+ RUN  v2.1.9 /workspace/mcp.gis.ph
+
+ ✓ test/params.test.ts (32 tests) 9ms
+
+ Test Files  1 passed (1)
+      Tests  32 passed (32)
+   Start at  20:07:19
+   Duration  305ms (transform 83ms, setup 0ms, collect 92ms, tests 9ms, environment 0ms, prepare 53ms)
+
+======= TYPECHECK =======
+
+> gis.ph-mcp@1.0.0 typecheck /workspace/mcp.gis.ph
+> tsc --noEmit
+
