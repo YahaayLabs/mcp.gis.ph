@@ -111,6 +111,7 @@ describe("anonymous", () => {
     expect(names).toContain("search_provinces_by_codes");
     expect(names).toContain("search_municities_by_codes");
     expect(names).toContain("search_barangays_by_codes");
+    expect(names).toContain("reverse_geocode");
     expect(names).toContain("list_datasets");
     for (const w of ["create_dataset", "update_dataset", "create_feature"]) expect(names).not.toContain(w);
   });
@@ -140,6 +141,7 @@ describe("anonymous", () => {
   it.each([
     "list_datasets", "get_dataset", "list_features", "get_feature", "get_features_by_dataset",
     "search_regions_by_ids", "search_provinces_by_codes", "search_municities_by_codes", "search_barangays_by_codes",
+    "reverse_geocode",
   ])(
     "%s needs sign-in: 401 + challenge without error=",
     async (name) => {
