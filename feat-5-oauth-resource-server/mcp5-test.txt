@@ -1,45 +1,13 @@
-? Verifying lockfile against supply-chain policies (295 entries)...
-Downloading @img/sharp-libvips-linux-x64@1.2.4: 0.00 B/7.53 MB
-Downloading @cloudflare/workerd-linux-64@1.20260219.0: 0.00 B/34.62 MB
-✓ Lockfile passes supply-chain policies (295 entries in 1.1s)
-Lockfile is up to date, resolution step is skipped
-Packages: +195
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Progress: resolved 195, reused 0, downloaded 195, added 195, done
-
-dependencies:
-+ @hono/mcp 0.2.3
-+ @modelcontextprotocol/sdk 1.26.0
-+ agents 0.0.87
-+ hono 4.12.0
-+ jose 6.1.3
-+ zod 3.25.76
-
-devDependencies:
-+ @cloudflare/workers-types 4.20260228.0
-+ typescript 5.9.3
-+ vitest 2.1.9
-+ wrangler 4.67.0
-
-Error: ERR_PNPM_IGNORED_BUILDS
-
-  × installing dependencies
-  ╰─▶ Ignored build scripts: esbuild@0.21.5, esbuild@0.27.3, sharp@0.34.5,
-      workerd@1.20260219.0
-  help: Run "pnpm approve-builds" to pick which dependencies should be allowed
-        to run scripts.
-
-[WARN] The install that runs before scripts failed, so your node_modules may be out of sync with your lockfile. Set "verifyDepsBeforeRun: false" to skip this install.
 $ vitest run
 
  RUN  v2.1.9 /workspace/gisph-oauth/run/wt-5
 
- ✓ test/params.test.ts (5 tests) 4ms
- ✓ test/auth.test.ts (30 tests) 19ms
- ✓ test/http.test.ts (22 tests) 57ms
+ ✓ test/params.test.ts (32 tests) 10ms
+ ✓ test/auth.test.ts (30 tests) 17ms
+ ✓ test/http.test.ts (24 tests) 65ms
 
  Test Files  3 passed (3)
-      Tests  57 passed (57)
-   Start at  21:02:17
-   Duration  473ms (transform 157ms, setup 0ms, collect 366ms, tests 80ms, environment 0ms, prepare 170ms)
+      Tests  86 passed (86)
+   Start at  21:20:56
+   Duration  497ms (transform 281ms, setup 0ms, collect 497ms, tests 92ms, environment 0ms, prepare 178ms)
 
