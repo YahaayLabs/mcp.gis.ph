@@ -14,8 +14,8 @@ import {
 } from "../src/params";
 import { dataTypeSchema, municitiesInput } from "../src/schemas";
 
-// Public example PSGC codes from the api.gis.ph OpenAPI.
-const MUNI = "0712370000"; // Tagbilaran
+// Public 10-digit PSGC codes from api.gis.ph (free-tier JSON, no key).
+const MUNI = "0701242000"; // City of Tagbilaran
 const PROV = "0701200000"; // Bohol
 
 describe("pagingParams", () => {
