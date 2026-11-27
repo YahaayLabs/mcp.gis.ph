@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   BARANGAY_GEOJSON_NEEDS_MUNICIPALITY,
   MUNICITY_PARENT_REQUIRED,
+  NAME_SEARCH_Q_REQUIRED,
   barangayParams,
   datasetListParams,
   geoOutputParams,
   municityListParams,
+  nameSearchParams,
   pagingParams,
   provinceGetParams,
   provinceListParams,
@@ -202,6 +204,23 @@ describe("dataTypeSchema", () => {
   it("matches the API enum vector | raster | data", () => {
     for (const t of ["vector", "raster", "data"]) expect(dataTypeSchema.safeParse(t).success).toBe(true);
     expect(dataTypeSchema.safeParse("tabular").success).toBe(false);
+  });
+});
+
+describe("nameSearchParams", () => {
+  it("requires q of at least 2 characters", () => {
+    expect(() => nameSearchParams({ q: "" })).toThrow(NAME_SEARCH_Q_REQUIRED);
+    expect(() => nameSearchParams({ q: "T" })).toThrow(NAME_SEARCH_Q_REQUIRED);
+    expect(() => nameSearchParams({ q: "  T  " })).toThrow(NAME_SEARCH_Q_REQUIRED);
+  });
+  it("sends trimmed q and omits limit unless set, so the API default of 20 applies", () => {
+    expect(nameSearchParams({ q: "  Tagbilaran  " })).toEqual({ q: "Tagbilaran" });
+    expect(nameSearchParams({ q: "poblacion bat" })).not.toHaveProperty("limit");
+  });
+  it("sends limit only when the caller sets it, as a positive integer", () => {
+    expect(nameSearchParams({ q: "Tag", limit: 5 })).toEqual({ q: "Tag", limit: "5" });
+    expect(nameSearchParams({ q: "Tag", limit: 0 })).toEqual({ q: "Tag", limit: "1" });
+    expect(nameSearchParams({ q: "Tag", limit: 7.9 })).toEqual({ q: "Tag", limit: "7" });
   });
 });
 

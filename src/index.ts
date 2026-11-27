@@ -7,6 +7,7 @@ import {
   datasetListParams,
   geoOutputParams,
   municityListParams,
+  nameSearchParams,
   provinceGetParams,
   provinceListParams,
   regionListParams,
@@ -17,6 +18,7 @@ import {
   geoOutputShape,
   listDatasetsShape,
   municitiesInput,
+  nameSearchShape,
   provinceShape,
   provincesShape,
   regionsShape,
@@ -128,6 +130,21 @@ function buildMcpServer(apiKey: string): McpServer {
       json(await gisApi(`/barangays/${encodeURIComponent(barangay_code)}`, apiKey, { params: geoOutputParams(rest) }))
   );
 
+  // ── Name search (anonymous free-tier JSON) ─────────────────────────────
+  server.tool(
+    "search_municities",
+    "Search cities and municipalities by name across all provinces (GET /v1/municities/search). Anonymous free-tier tool.",
+    nameSearchShape,
+    async (input) => json(await gisApi("/municities/search", apiKey, { params: nameSearchParams(input) })),
+  );
+
+  server.tool(
+    "search_barangays",
+    "Search barangays by name across all provinces (GET /v1/barangays/search). Multi-word queries are tokenized on spaces and commas; every token must match. Anonymous free-tier tool.",
+    nameSearchShape,
+    async (input) => json(await gisApi("/barangays/search", apiKey, { params: nameSearchParams(input) })),
+  );
+
   // ── Datasets ───────────────────────────────────────────────────────────
   server.tool(
     "list_datasets",
@@ -230,6 +247,7 @@ app.get("/", (c) =>
       "get_provinces", "get_province",
       "get_municities", "get_municity",
       "get_barangays", "get_barangay",
+      "search_municities", "search_barangays",
       "list_datasets", "get_dataset", "create_dataset", "update_dataset",
       "list_features", "get_feature", "get_features_by_dataset", "create_feature",
     ],
