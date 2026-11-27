@@ -61,8 +61,33 @@ pnpm typecheck   # tsc --noEmit
 pnpm dev   # wrangler dev
 ```
 
-The server holds no API key of its own: each client passes its gis.ph key per request
-(`?key=YOUR_KEY` or the `x-api-key` header), and it is forwarded to api.gis.ph as a Bearer token.
+## Authentication
+
+`/mcp` is an OAuth 2.1 protected resource (RFC 9728). The authorization server is
+api.gis.ph; sign-in and consent happen on dashboard.gis.ph with your gis.ph account.
+
+| Caller | How | What works |
+|---|---|---|
+| Signed in (OAuth) | `Authorization: Bearer <access token>` from api.gis.ph | All read-only tools, 300 rpm per user |
+| API key | `x-api-key: gis_sk_…` or `Authorization: Bearer gis_sk_…` | Read-only tools under the key's own limits and scopes |
+| Anonymous | No credential | Boundary metadata tools only (regions, provinces, municities, barangays), JSON without geometry, 30 rpm per client |
+
+- **`?key=` in the URL is no longer accepted** (returns 401). Keys in URLs leak into logs and connector settings.
+- Write tools (`create_dataset`, `update_dataset`, `create_feature`) are disabled for this launch.
+- Anonymous calls to a signed-in tool get `401` with `WWW-Authenticate: Bearer realm="gisph", resource_metadata="…", scope="mcp"`, which starts the client's OAuth flow. An invalid or expired token adds `error="invalid_token"`.
+- Protected-resource metadata: `/.well-known/oauth-protected-resource` (and `/.well-known/oauth-protected-resource/mcp`).
+- OAuth users and anonymous callers reach api.gis.ph with the dedicated MCP service key plus the user's Clerk id (or an opaque per-client key, an HMAC of the client IP; the raw IP is never sent). The MCP access token is never forwarded upstream and no `gis_sk_` keys are minted.
+- Revoking a sign-in on api.gis.ph stops refresh immediately; an already-issued access token keeps working until it expires (1 h by default), because this Worker does not share the refresh store.
+
+### Configuration
+
+Non-secret values are `[vars]` in `wrangler.toml` (`MCP_OAUTH_ISSUER`, `MCP_OAUTH_AUDIENCE`,
+`MCP_PUBLIC_BASE`, `GISPH_API_BASE`). Secrets, set with `wrangler secret put` and never committed:
+
+- `MCP_OAUTH_SECRET`: same value as on api.gis.ph (HS256, at least 32 characters). Without it, OAuth tokens are rejected.
+- `GISPH_MCP_SERVICE_KEY`: same value as on api.gis.ph. Without it, OAuth tokens are rejected and anonymous calls return 503; API keys still work.
+
+This release must ship together with the api.gis.ph authorization server (api.gis.ph#194, #195) and the dashboard consent page (dashboard.gis.ph#63).
 
 ### Deploy to mcp.gis.ph
 
@@ -76,12 +101,13 @@ pnpm deploy
 
 ### claude.ai / Claude Desktop (custom connector)
 
-Add a custom connector with the URL `https://mcp.gis.ph/mcp?key=YOUR_KEY`.
+Add a custom connector with the URL `https://mcp.gis.ph/mcp` and sign in with your gis.ph account when prompted.
 
 ### Claude Code (CLI)
 
 ```bash
-claude mcp add --transport http gis-ph "https://mcp.gis.ph/mcp?key=YOUR_KEY"
+claude mcp add --transport http gis-ph https://mcp.gis.ph/mcp            # OAuth sign-in (/mcp in Claude Code)
+claude mcp add --transport http gis-ph https://mcp.gis.ph/mcp --header "x-api-key: YOUR_KEY"   # or an API key
 ```
 
 ---
@@ -90,5 +116,6 @@ claude mcp add --transport http gis-ph "https://mcp.gis.ph/mcp?key=YOUR_KEY"
 
 | Endpoint | Transport | Use |
 |---|---|---|
-| `https://mcp.gis.ph/mcp` | Streamable HTTP | All MCP clients (`?key=` or `x-api-key` required) |
+| `https://mcp.gis.ph/mcp` | Streamable HTTP | All MCP clients (OAuth, API key header, or anonymous boundary tools) |
 | `https://mcp.gis.ph/` | JSON | Health check / tool list |
+| `https://mcp.gis.ph/.well-known/oauth-protected-resource` | JSON | OAuth protected-resource metadata |
