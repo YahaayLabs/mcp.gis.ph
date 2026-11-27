@@ -13,3 +13,13 @@ bindings = []
 [[migrations]]
 tag = "v2"
 deleted_classes = ["GisPhMCP"]
+
+# OAuth resource server (mcp.gis.ph#5). Non-secret config only.
+# Secrets (set with `wrangler secret put`, never committed):
+#   MCP_OAUTH_SECRET       same value as api.gis.ph (HS256, >= 32 chars)
+#   GISPH_MCP_SERVICE_KEY  same value as api.gis.ph
+[vars]
+MCP_OAUTH_ISSUER = "https://api.gis.ph"
+MCP_OAUTH_AUDIENCE = "gisph-mcp"
+MCP_PUBLIC_BASE = "https://mcp.gis.ph"
+GISPH_API_BASE = "https://api.gis.ph/v1"
