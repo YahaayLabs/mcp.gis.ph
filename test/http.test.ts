@@ -137,6 +137,19 @@ describe("anonymous", () => {
     expect(res.status).toBe(401);
     expect(upstream).toHaveLength(0);
   });
+  it("geometry / GeoJSON params from the #6 tool schemas are stripped for anonymous callers", async () => {
+    await messages(await post(call("get_provinces", { format: "geojson", geometry: "simple" })));
+    expect(upstream).toHaveLength(1);
+    const u = new URL(upstream[0]!.url);
+    expect(u.searchParams.has("geometry")).toBe(false);
+    expect(u.searchParams.has("format")).toBe(false);
+  });
+  it("API-key callers keep geometry / GeoJSON params", async () => {
+    await messages(await post(call("get_provinces", { format: "geojson", geometry: "simple" }), { "x-api-key": "gis_sk_header" }));
+    const u = new URL(upstream[0]!.url);
+    expect(u.searchParams.get("geometry")).toBe("simple");
+    expect(u.searchParams.get("format")).toBe("geojson");
+  });
   it("is 503 (not silently keyless) when the service key is missing", async () => {
     const res = await post(call("get_regions"), {}, { MCP_OBJECT: {} });
     expect(res.status).toBe(503);
