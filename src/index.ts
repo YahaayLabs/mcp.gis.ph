@@ -2,7 +2,26 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPTransport } from "@hono/mcp";
 import { Hono } from "hono";
 import { z } from "zod";
-import { barangayParams, pagingParams, provinceCodeFromMunicity, MAX_LIST_LIMIT } from "./params";
+import {
+  barangayParams,
+  datasetListParams,
+  geoOutputParams,
+  municityListParams,
+  provinceGetParams,
+  provinceListParams,
+  regionListParams,
+} from "./params";
+import {
+  barangaysShape,
+  dataTypeSchema,
+  geoOutputShape,
+  listDatasetsShape,
+  municitiesInput,
+  municitiesShape,
+  provinceShape,
+  provincesShape,
+  regionsShape,
+} from "./schemas";
 import { handleMcp, registerAuthRoutes, discoveryAuth, type UpstreamAuth } from "./http";
 import type { McpEnv } from "./config";
 import { trackTools, ANONYMOUS_TOOLS, SIGNED_IN_TOOLS } from "./tool-policy";
@@ -40,139 +59,104 @@ async function gisApi(
   return response.json();
 }
 
-const pagingShape = {
-  limit: z.number().int().min(1).max(MAX_LIST_LIMIT).optional()
-    .describe("Rows per page, 1-100 (default 100). Check meta.total and meta.next for more pages."),
-  page: z.number().int().min(1).optional().describe("Page number, starting at 1 (default 1)"),
-};
+function json(data: unknown) {
+  return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+}
 
 function buildMcpServer(apiKey: UpstreamAuth): McpServer {
   const server = new McpServer({ name: "gis-ph", version: "1.0.0" });
   const tools = trackTools(server);
 
   // ── Regions ────────────────────────────────────────────────────────────
-  server.tool("get_regions", "Get all regions in the Philippines", {}, async () => {
-    const data = await gisApi("/regions", apiKey);
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-  });
+  server.tool(
+    "get_regions",
+    "Get regions in the Philippines (paginated, default limit 100 so all 17 fit on one page)",
+    regionsShape,
+    async (input) => json(await gisApi("/regions", apiKey, { params: regionListParams(input) }))
+  );
 
   server.tool(
     "get_region",
     "Get details of a specific region by its code",
-    { region_code: z.string().describe("Region code") },
-    async ({ region_code }) => {
-      const data = await gisApi(`/regions/${region_code}`, apiKey);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    { region_code: z.string().describe("Region PSGC code"), ...geoOutputShape },
+    async ({ region_code, ...rest }) =>
+      json(await gisApi(`/regions/${encodeURIComponent(region_code)}`, apiKey, { params: geoOutputParams(rest) }))
   );
 
   // ── Provinces ──────────────────────────────────────────────────────────
   server.tool(
     "get_provinces",
-    "Get provinces in the Philippines (paginated; response meta has total and next page)",
-    pagingShape,
-    async ({ limit, page }) => {
-    const data = await gisApi("/provinces", apiKey, { params: pagingParams({ limit, page }) });
-    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    "Get provinces, optionally filtered by region (paginated; response meta has total and next page)",
+    provincesShape,
+    async (input) => json(await gisApi("/provinces", apiKey, { params: provinceListParams(input) }))
   );
 
   server.tool(
     "get_province",
-    "Get details of a specific province by its code",
-    { province_code: z.string().describe("Province code e.g. '1400100000'") },
-    async ({ province_code }) => {
-      const data = await gisApi(`/provinces/${province_code}`, apiKey);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    "Get details of a specific province by its PSGC code",
+    provinceShape,
+    async ({ province_code, ...rest }) =>
+      json(await gisApi(`/provinces/${encodeURIComponent(province_code)}`, apiKey, { params: provinceGetParams(rest) }))
   );
 
   // ── Municities ─────────────────────────────────────────────────────────
   server.tool(
     "get_municities",
-    "Get cities and municipalities, optionally filtered by province (paginated; response meta has total and next page)",
-    { province_code: z.string().optional().describe("Province code to filter by"), ...pagingShape },
-    async ({ province_code, limit, page }) => {
-      const params = pagingParams({ limit, page });
-      if (province_code) params.province_code = province_code;
-      const data = await gisApi("/municities", apiKey, { params });
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    "Get cities and municipalities in a province. Requires province_code (preferred) or province (exact name). Paginated; response meta has total and next page",
+    municitiesShape,
+    async (raw) => {
+      const parsed = municitiesInput.safeParse(raw);
+      if (!parsed.success) throw new Error(parsed.error.issues.map((i) => i.message).join("; "));
+      return json(await gisApi("/municities", apiKey, { params: municityListParams(parsed.data) }));
     }
   );
 
   server.tool(
     "get_municity",
-    "Get details of a specific city or municipality by its code",
-    { municity_code: z.string().describe("City or municipality code") },
-    async ({ municity_code }) => {
-      const data = await gisApi(`/municities/${municity_code}`, apiKey);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    "Get details of a specific city or municipality by its PSGC code",
+    { municity_code: z.string().describe("City or municipality PSGC code"), ...geoOutputShape },
+    async ({ municity_code, ...rest }) =>
+      json(await gisApi(`/municities/${encodeURIComponent(municity_code)}`, apiKey, { params: geoOutputParams(rest) }))
   );
 
   // ── Barangays ──────────────────────────────────────────────────────────
   server.tool(
     "get_barangays",
-    "Get barangays in a city/municipality or province (paginated; response meta has total and next page). Pass municipality_code (or province_code).",
-    {
-      municipality_code: z.string().optional().describe("City/municipality PSGC code to filter by"),
-      municity_code: z.string().optional().describe("Deprecated alias of municipality_code"),
-      province_code: z.string().optional().describe("Province code; derived from the city when omitted"),
-      ...pagingShape,
-    },
-    async (input) => {
-      const cityCode = input.municipality_code ?? input.municity_code;
-      let resolvedProvince: string | undefined;
-      if (cityCode && !input.province_code) {
-        // api.gis.ph may require a province; look it up from the municity.
-        resolvedProvince = provinceCodeFromMunicity(await gisApi(`/municities/${cityCode}`, apiKey));
-      }
-      const params = barangayParams(input, resolvedProvince);
-      const data = await gisApi("/barangays", apiKey, { params });
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    "Get barangays filtered by city/municipality and/or province (paginated; response meta has total and next page). municipality_code alone is enough.",
+    barangaysShape,
+    async (input) => json(await gisApi("/barangays", apiKey, { params: barangayParams(input) }))
   );
 
   server.tool(
     "get_barangay",
-    "Get details of a specific barangay by its code",
-    { barangay_code: z.string().describe("Barangay code") },
-    async ({ barangay_code }) => {
-      const data = await gisApi(`/barangays/${barangay_code}`, apiKey);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    "Get details of a specific barangay by its PSGC code",
+    { barangay_code: z.string().describe("Barangay PSGC code"), ...geoOutputShape },
+    async ({ barangay_code, ...rest }) =>
+      json(await gisApi(`/barangays/${encodeURIComponent(barangay_code)}`, apiKey, { params: geoOutputParams(rest) }))
   );
 
   // ── Datasets ───────────────────────────────────────────────────────────
   server.tool(
     "list_datasets",
-    "List all datasets, optionally including their features",
-    { include_features: z.boolean().optional().describe("Include features in each dataset") },
-    async ({ include_features }) => {
-      const params: Record<string, string> = {};
-      if (include_features) params.includeFeatures = "true";
-      const data = await gisApi("/datasets", apiKey, { params });
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    "List datasets (yours by default; see visibility), optionally including their features. Paginated",
+    listDatasetsShape,
+    async (input) => json(await gisApi("/datasets", apiKey, { params: datasetListParams(input) }))
   );
 
   server.tool(
     "get_dataset",
     "Get a single dataset by its ID",
     { dataset_id: z.string().describe("Dataset UUID") },
-    async ({ dataset_id }) => {
-      const data = await gisApi(`/datasets/${dataset_id}`, apiKey);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    async ({ dataset_id }) => json(await gisApi(`/datasets/${encodeURIComponent(dataset_id)}`, apiKey))
   );
 
   server.tool(
     "create_dataset",
-    "Create a new dataset, optionally with features",
+    "Create a new dataset",
     {
       name: z.string().describe("Dataset name"),
       description: z.string().optional().describe("Dataset description"),
-      data_type: z.enum(["vector", "raster"]).optional().describe("Data type"),
+      data_type: dataTypeSchema.optional().describe("Data type: vector, raster or data"),
       geometry_type: z.enum(["POINT", "LINESTRING", "POLYGON", "MULTIPOINT", "MULTILINESTRING", "MULTIPOLYGON"]).optional().describe("Geometry type"),
       srid: z.number().optional().describe("Spatial reference ID, default 4326"),
     },
@@ -182,8 +166,7 @@ function buildMcpServer(apiKey: UpstreamAuth): McpServer {
       if (data_type) body.data_type = data_type;
       if (geometry_type) body.geometry_type = geometry_type;
       if (srid) body.srid = srid;
-      const data = await gisApi("/datasets", apiKey, { method: "POST", body });
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      return json(await gisApi("/datasets", apiKey, { method: "POST", body }));
     }
   );
 
@@ -199,40 +182,25 @@ function buildMcpServer(apiKey: UpstreamAuth): McpServer {
       const body: Record<string, unknown> = {};
       if (name) body.name = name;
       if (description) body.description = description;
-      const data = await gisApi(`/datasets/${dataset_id}`, apiKey, { method: "PATCH", body });
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      return json(await gisApi(`/datasets/${encodeURIComponent(dataset_id)}`, apiKey, { method: "PATCH", body }));
     }
   );
 
   // ── Features ───────────────────────────────────────────────────────────
-  server.tool(
-    "list_features",
-    "List all features",
-    {},
-    async () => {
-      const data = await gisApi("/features", apiKey);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
-  );
+  server.tool("list_features", "List all features", {}, async () => json(await gisApi("/features", apiKey)));
 
   server.tool(
     "get_feature",
     "Get a single feature by its ID",
     { feature_id: z.string().describe("Feature ID") },
-    async ({ feature_id }) => {
-      const data = await gisApi(`/features/${feature_id}`, apiKey);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    async ({ feature_id }) => json(await gisApi(`/features/${encodeURIComponent(feature_id)}`, apiKey))
   );
 
   server.tool(
     "get_features_by_dataset",
     "Get all features belonging to a dataset",
     { dataset_id: z.string().describe("Dataset UUID") },
-    async ({ dataset_id }) => {
-      const data = await gisApi(`/features/dataset/${dataset_id}`, apiKey);
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-    }
+    async ({ dataset_id }) => json(await gisApi(`/features/dataset/${encodeURIComponent(dataset_id)}`, apiKey))
   );
 
   server.tool(
@@ -249,8 +217,7 @@ function buildMcpServer(apiKey: UpstreamAuth): McpServer {
     async ({ dataset_id, geometry, properties }) => {
       const body: Record<string, unknown> = { dataset_id, geometry };
       if (properties) body.properties = properties;
-      const data = await gisApi("/features", apiKey, { method: "POST", body });
-      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      return json(await gisApi("/features", apiKey, { method: "POST", body }));
     }
   );
 

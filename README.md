@@ -8,31 +8,35 @@ Deployed at **https://mcp.gis.ph**
 
 ## Tools
 
-| Tool | Description |
-|---|---|
-| `get_regions` / `get_region` | All regions / one region by code |
-| `get_provinces` | Provinces (paginated: `limit` 1-100, default 100; `page`) |
-| `get_province` | Single province by code |
-| `get_municities` | Cities/municipalities, filterable by `province_code` (paginated) |
-| `get_municity` | Single city/municipality by code |
-| `get_barangays` | Barangays by `municipality_code` and/or `province_code` (paginated). Province is looked up from the city when omitted. `municity_code` is accepted as a deprecated alias. |
-| `get_barangay` | Single barangay by code |
-| `list_datasets` / `get_dataset` / `create_dataset` / `update_dataset` | Your gis.ph datasets |
-| `list_features` / `get_feature` / `get_features_by_dataset` / `create_feature` | Features in your datasets |
+Tool parameters use the same names as the [api.gis.ph](https://api.gis.ph/reference) query params they map to.
 
-List tools return the api.gis.ph envelope; use `meta.total` and `meta.next` to fetch further pages.
-There are no search, reverse-geocode or demographics tools yet.
+| Tool | API route | Parameters |
+|---|---|---|
+| `get_regions` | `GET /v1/regions` | `search` (name, partial match), `format`, `geometry`, `limit`, `page` |
+| `get_region` | `GET /v1/regions/{id}` | `region_code` (required), `format`, `geometry` |
+| `get_provinces` | `GET /v1/provinces` | `region` (code or exact name), `extent`, `format`, `geometry`, `limit`, `page` |
+| `get_province` | `GET /v1/provinces/{id}` | `province_code` (required), `extent`, `format`, `geometry` |
+| `get_municities` | `GET /v1/municities` | **`province_code` or `province` required** (code preferred; name is exact, case-insensitive), `scope` (`geographic` default \| `admin`), `name` (starts-with), `format`, `geometry`, `limit`, `page` |
+| `get_municity` | `GET /v1/municities/{id}` | `municity_code` (required), `format`, `geometry` |
+| `get_barangays` | `GET /v1/barangays` | `municipality_code` (enough on its own), `municipality` (name, starts-with), `province_code`, `province` (exact name), `name` (barangay, starts-with), `format`, `geometry`, `limit`, `page`. `municity_code` is a deprecated alias of `municipality_code`. `format=geojson` needs `municipality_code` or `municipality`. |
+| `get_barangay` | `GET /v1/barangays/{id}` | `barangay_code` (required), `format`, `geometry` |
+| `list_datasets` | `GET /v1/datasets` | `visibility` (`mine` default \| `private` \| `all` \| `public`), `include_features`, `limit`, `page` |
+| `get_dataset` | `GET /v1/datasets/{id}` | `dataset_id` (required) |
+| `create_dataset` | `POST /v1/datasets` | `name` (required), `description`, `data_type` (`vector` \| `raster` \| `data`), `geometry_type`, `srid` |
+| `update_dataset` | `PATCH /v1/datasets/{id}` | `dataset_id` (required), `name`, `description` |
+| `list_features` | `GET /v1/features` | — |
+| `get_feature` | `GET /v1/features/{id}` | `feature_id` (required) |
+| `get_features_by_dataset` | `GET /v1/features/dataset/{datasetId}` | `dataset_id` (required) |
+| `create_feature` | `POST /v1/features` | `dataset_id` (required), `geometry` (GeoJSON), `properties` |
 
----|---|
-| `get_provinces` | All 81 provinces |
-| `get_province` | Single province by code |
-| `get_cities` | Cities/municipalities, filterable by province |
-| `get_city` | Single city by code |
-| `get_barangays` | Barangays, filterable by city or province |
-| `get_barangay` | Single barangay by code |
-| `search_location` | Search any location by name |
-| `reverse_geocode` | Find location from lat/lng coordinates |
-| `get_demographics` | Population and demographic data |
+Shared options:
+
+- `limit` 1-100 (default 100) and `page` (default 1). List tools return the api.gis.ph envelope; use `meta.total` and `meta.next` to fetch further pages.
+- `format`: `json` (default) or `geojson` (bare GeoJSON FeatureCollection/Feature; geography lists are then unpaginated).
+- `geometry`: `simple` \| `medium` \| `detailed`. Omitted by default, so JSON responses carry no boundaries.
+- `extent` (provinces): `administrative` (API default, component LGUs only) or `geographic` (also HUC/ICC cities hosted by the province).
+
+There are no search, reverse-geocode, places, politicians or demographics tools yet.
 
 ---
 
