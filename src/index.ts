@@ -3,28 +3,32 @@ import { StreamableHTTPTransport } from "@hono/mcp";
 import { Hono } from "hono";
 import { z } from "zod";
 import { barangayParams, pagingParams, provinceCodeFromMunicity, MAX_LIST_LIMIT } from "./params";
+import { handleMcp, registerAuthRoutes, discoveryAuth, type UpstreamAuth } from "./http";
+import type { McpEnv } from "./config";
+import { trackTools, ANONYMOUS_TOOLS, SIGNED_IN_TOOLS } from "./tool-policy";
+import { upstreamParams } from "./auth";
 
-export interface Env {
+export interface Env extends McpEnv {
   MCP_OBJECT: DurableObjectNamespace;
 }
 
-const BASE_URL = "https://api.gis.ph/v1";
-
+/** `apiKey` is the resolved upstream credential (API key, OAuth user or anonymous); see src/auth.ts. */
 async function gisApi(
   path: string,
-  apiKey: string,
+  apiKey: UpstreamAuth,
   options?: { params?: Record<string, string>; method?: string; body?: unknown }
 ): Promise<unknown> {
-  const url = new URL(BASE_URL + path);
-  if (options?.params) {
-    for (const [key, value] of Object.entries(options.params)) {
+  const url = new URL(apiKey.baseUrl + path);
+  const params = upstreamParams(apiKey, options?.params);
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
       if (value) url.searchParams.set(key, value);
     }
   }
   const response = await fetch(url.toString(), {
     method: options?.method ?? "GET",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      ...apiKey.headers,
       "Content-Type": "application/json",
     },
     body: options?.body ? JSON.stringify(options.body) : undefined,
@@ -42,8 +46,9 @@ const pagingShape = {
   page: z.number().int().min(1).optional().describe("Page number, starting at 1 (default 1)"),
 };
 
-function buildMcpServer(apiKey: string): McpServer {
+function buildMcpServer(apiKey: UpstreamAuth): McpServer {
   const server = new McpServer({ name: "gis-ph", version: "1.0.0" });
+  const tools = trackTools(server);
 
   // ── Regions ────────────────────────────────────────────────────────────
   server.tool("get_regions", "Get all regions in the Philippines", {}, async () => {
@@ -249,39 +254,30 @@ function buildMcpServer(apiKey: string): McpServer {
     }
   );
 
+  tools.apply();
   return server;
 }
 
 const app = new Hono<{ Bindings: Env }>();
 
+registerAuthRoutes(app);
+
 app.get("/", (c) =>
   c.json({
     name: "gis.ph MCP Server",
     version: "1.0.0",
-    auth: "Pass your gis.ph API key via ?key= query param or x-api-key header",
-    endpoint: "https://mcp.gis.ph/mcp?key=YOUR_KEY",
-    tools: [
-      "get_regions", "get_region",
-      "get_provinces", "get_province",
-      "get_municities", "get_municity",
-      "get_barangays", "get_barangay",
-      "list_datasets", "get_dataset", "create_dataset", "update_dataset",
-      "list_features", "get_feature", "get_features_by_dataset", "create_feature",
-    ],
+    ...discoveryAuth(c.env),
+    tools: { anonymous: ANONYMOUS_TOOLS, signed_in: SIGNED_IN_TOOLS },
   })
 );
 
-app.all("/mcp", async (c) => {
-  const apiKey = c.req.query("key") ?? c.req.header("x-api-key") ?? "";
-
-  if (!apiKey) {
-    return c.json({ error: "Missing API key. Add ?key=YOUR_KEY to the URL." }, 401);
-  }
-
-  const server = buildMcpServer(apiKey);
-  const transport = new StreamableHTTPTransport();
-  await server.connect(transport);
-  return transport.handleRequest(c);
-});
+app.all("/mcp", (c) =>
+  handleMcp(c, async (upstream) => {
+    const server = buildMcpServer(upstream);
+    const transport = new StreamableHTTPTransport();
+    await server.connect(transport);
+    return transport.handleRequest(c);
+  })
+);
 
 export default app;
