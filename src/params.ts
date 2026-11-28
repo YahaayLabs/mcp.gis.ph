@@ -296,3 +296,30 @@ export function reverseGeocodeParams(input: ReverseGeocodeInput): Params {
   if (input.geometry) params.geometry = input.geometry;
   return params;
 }
+
+export const DOWNLOAD_RESOURCES = ["regions", "provinces", "municities", "barangays"] as const;
+
+export interface DownloadLinkInput {
+  resource: (typeof DOWNLOAD_RESOURCES)[number];
+  id?: string;
+  geometry?: GeometryLevel;
+  search?: string;
+  region?: string;
+  province?: string;
+  province_code?: string;
+  municipality?: string;
+  municipality_code?: string;
+  name?: string;
+  scope?: string;
+  extent?: string;
+  zip?: boolean;
+}
+
+/**
+ * GET /v1/downloads/link. Same filter names as the geography list routes.
+ * `zip` is not sent: the API returns both `url` and `zip_url`.
+ */
+export function downloadLinkParams(input: DownloadLinkInput): Params {
+  const { zip: _zip, ...rest } = input;
+  return defined(rest as Record<string, string | undefined>);
+}

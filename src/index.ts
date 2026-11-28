@@ -10,6 +10,7 @@ import {
   barangayParams,
   batchSearchBody,
   datasetListParams,
+  downloadLinkParams,
   geoOutputParams,
   municityListParams,
   nameSearchParams,
@@ -33,6 +34,7 @@ import {
   searchProvincesByCodesShape,
   searchRegionsByIdsShape,
   reverseGeocodeShape,
+  downloadLinkShape,
 } from "./schemas";
 import { handleMcp, registerAuthRoutes, discoveryAuth, type UpstreamAuth } from "./http";
 import { config, type McpEnv } from "./config";
@@ -213,6 +215,22 @@ function buildMcpServer(apiKey: UpstreamAuth, maxResponseBytes: number = DEFAULT
     "Reverse geocode a WGS84 point to the admin hierarchy (GET /v1/geocode/reverse). Signed-in, read-only; not anonymous. Requires OAuth or an API key (read:boundaries on the API).",
     reverseGeocodeShape,
     async (input) => json(await gisApi("/geocode/reverse", apiKey, { params: reverseGeocodeParams(input) })),
+  );
+
+  // ── Download links (signed-in) ─────────────────────────────────────────
+  server.tool(
+    "get_download_link",
+    "Get a short-lived download link (15 minutes) for boundary GeoJSON that is too large to return here " +
+      "(GET /v1/downloads/link). Takes the same filters as the list tools. Returns url (plain .geojson), " +
+      "zip_url, bytes, feature_count and bbox. Give the link to the user; QGIS can open the url directly. Signed-in only.",
+    downloadLinkShape,
+    async (input) => {
+      const res = (await gisApi("/downloads/link", apiKey, { params: downloadLinkParams(input) })) as {
+        data?: Record<string, unknown> & { url?: string; zip_url?: string };
+      };
+      const data = res?.data ?? {};
+      return json({ ...data, link: input.zip ? data.zip_url : data.url });
+    },
   );
 
   // ── Datasets ───────────────────────────────────────────────────────────
