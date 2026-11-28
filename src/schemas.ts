@@ -175,6 +175,9 @@ export const reverseGeocodeShape = {
 export const downloadLinkShape = {
   resource: z.enum(DOWNLOAD_RESOURCES).describe("Boundary list to download: regions, provinces, municities or barangays"),
   id: z.string().optional().describe("PSGC code to download one feature instead of a list"),
+  barangays: z.boolean().optional().describe(
+    "With resource=municities and id: download that city/municipality's barangays, each with its boundary (e.g. Quezon City with all barangays). Without it a municity download is only its outline",
+  ),
   geometry: z.enum(GEOMETRY_LEVELS).optional().describe("Boundary resolution: simple (default), medium or detailed"),
   search: z.string().optional().describe("regions: name filter"),
   region: z.string().optional().describe("provinces: region code or exact name"),

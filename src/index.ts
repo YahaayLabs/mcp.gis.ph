@@ -221,7 +221,7 @@ function buildMcpServer(apiKey: UpstreamAuth, maxResponseBytes: number = DEFAULT
   server.tool(
     "get_download_link",
     "Get a short-lived download link (15 minutes) for boundary GeoJSON that is too large to return here " +
-      "(GET /v1/downloads/link). Takes the same filters as the list tools. Returns url (plain .geojson), " +
+      "(GET /v1/downloads/link). Takes the same filters as the list tools; for a city or municipality with its barangays, use resource=municities, id and barangays=true. Returns url (plain .geojson), " +
       "zip_url, bytes, feature_count and bbox. Give the link to the user; QGIS can open the url directly. Signed-in only.",
     downloadLinkShape,
     async (input) => {

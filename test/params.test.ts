@@ -340,3 +340,10 @@ describe("downloadLinkParams", () => {
     });
   });
 });
+
+describe("downloadLinkParams barangays", () => {
+  it("sends barangays=true only when set", () => {
+    expect(downloadLinkParams({ resource: "municities", id: "1381300000", barangays: true })).toEqual({ resource: "municities", id: "1381300000", barangays: "true" });
+    expect(downloadLinkParams({ resource: "municities", id: "1381300000", barangays: false })).toEqual({ resource: "municities", id: "1381300000" });
+  });
+});
