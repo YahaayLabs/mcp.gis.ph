@@ -93,7 +93,7 @@ const GEOJSON_HINTS = [
   "Use geometry=simple (smallest boundaries) instead of medium or detailed.",
   "Use format=json and omit geometry to get attributes only.",
   "Narrow the area, e.g. one province_code or municipality_code instead of a whole region.",
-  "For the full GeoJSON, call api.gis.ph directly (QGIS, scripts); MCP results are capped.",
+  "For the full file, call get_download_link with the same filters and give the user the link.",
 ];
 
 const LIST_HINTS = [

@@ -21,6 +21,7 @@ export const SIGNED_IN_TOOLS = [
   "search_regions_by_ids", "search_provinces_by_codes",
   "search_municities_by_codes", "search_barangays_by_codes",
   "reverse_geocode",
+  "get_download_link",
 ] as const;
 
 /** Write tools disabled for this launch for everyone (the API also 403s them for MCP). */

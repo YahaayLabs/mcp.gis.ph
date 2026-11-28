@@ -5,6 +5,7 @@ import {
   BATCH_PROVINCE_CODES_MAX,
   BATCH_REGION_IDS_MAX,
   DATASET_DATA_TYPES,
+  DOWNLOAD_RESOURCES,
   DATASET_VISIBILITIES,
   FORMATS,
   GEOMETRY_LEVELS,
@@ -170,3 +171,19 @@ export const reverseGeocodeShape = {
   ),
 };
 
+
+export const downloadLinkShape = {
+  resource: z.enum(DOWNLOAD_RESOURCES).describe("Boundary list to download: regions, provinces, municities or barangays"),
+  id: z.string().optional().describe("PSGC code to download one feature instead of a list"),
+  geometry: z.enum(GEOMETRY_LEVELS).optional().describe("Boundary resolution: simple (default), medium or detailed"),
+  search: z.string().optional().describe("regions: name filter"),
+  region: z.string().optional().describe("provinces: region code or exact name"),
+  province_code: z.string().optional().describe("municities/barangays: province PSGC code"),
+  province: z.string().optional().describe("municities/barangays: exact province name"),
+  municipality_code: z.string().optional().describe("barangays: city/municipality PSGC code"),
+  municipality: z.string().optional().describe("barangays: city/municipality name (starts-with)"),
+  name: z.string().optional().describe("municities/barangays: name filter (starts-with)"),
+  scope: z.enum(MUNICITY_SCOPES).optional().describe("municities: geographic (default) or admin"),
+  extent: z.enum(PROVINCE_EXTENTS).optional().describe("provinces: administrative (default) or geographic"),
+  zip: z.boolean().optional().describe("true to give the user the .zip link (zip_url) instead of plain .geojson"),
+};

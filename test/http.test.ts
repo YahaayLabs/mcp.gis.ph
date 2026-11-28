@@ -141,7 +141,7 @@ describe("anonymous", () => {
   it.each([
     "list_datasets", "get_dataset", "list_features", "get_feature", "get_features_by_dataset",
     "search_regions_by_ids", "search_provinces_by_codes", "search_municities_by_codes", "search_barangays_by_codes",
-    "reverse_geocode",
+    "reverse_geocode", "get_download_link",
   ])(
     "%s needs sign-in: 401 + challenge without error=",
     async (name) => {
@@ -270,6 +270,28 @@ describe("response size budget", () => {
     const res = await post(call("get_regions", { format: "geojson" }), { "x-api-key": "gis_sk_test" });
     const [m] = await messages(res);
     expect(JSON.parse(m.result.content[0].text)).toEqual(bigFc);
+  });
+});
+
+describe("get_download_link", () => {
+  it("calls GET /v1/downloads/link with the filters and returns the link", async () => {
+    const data = { url: "https://api.gis.ph/downloads/x/a.geojson?exp=1&sig=s", zip_url: "https://api.gis.ph/downloads/x/a.geojson?exp=1&sig=s&zip=true", bytes: 9, feature_count: 2, bbox: [1, 2, 3, 4] };
+    const seen: string[] = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      seen.push(String(input));
+      return new Response(JSON.stringify({ data, error: null }), { status: 200, headers: { "content-type": "application/json" } });
+    }) as typeof fetch;
+    const res = await post(call("get_download_link", { resource: "municities", province_code: "0102800000", geometry: "detailed", zip: true }), { "x-api-key": "gis_sk_test" });
+    const [m] = await messages(res);
+    expect(m.result.isError).toBeFalsy();
+    const u = new URL(seen[0]!);
+    expect(u.pathname).toBe("/v1/downloads/link");
+    expect(u.searchParams.get("resource")).toBe("municities");
+    expect(u.searchParams.get("province_code")).toBe("0102800000");
+    expect(u.searchParams.get("geometry")).toBe("detailed");
+    expect(u.searchParams.has("zip")).toBe(false);
+    const body = JSON.parse(m.result.content[0].text);
+    expect(body).toMatchObject({ ...data, link: data.zip_url });
   });
 });
 

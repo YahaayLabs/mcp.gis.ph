@@ -27,6 +27,7 @@ Tool parameters use the same names as the [api.gis.ph](https://api.gis.ph/refere
 | `search_municities_by_codes` | `POST /v1/municities/search` | **`codes` required** (max 1000), `format`, `geometry`. Live API returns 401 without a key. |
 | `search_barangays_by_codes` | `POST /v1/barangays/search` | **`codes` required** (max 500), `format`, `geometry`. Live API returns 401 without a key. |
 | `reverse_geocode` | `GET /v1/geocode/reverse` | **`lat` and `lng` required** (WGS84), `levels` (comma-separated: region,province,municity,barangay; default all), `geometry` (PIP resolution; API default simple). Signed-in, read-only; not anonymous. Later: OAuth `read:boundaries`. |
+| `get_download_link` | `GET /v1/downloads/link` | **`resource` required** (`regions` \| `provinces` \| `municities` \| `barangays`), `id`, `geometry`, same filters as the list tools, `zip` (true: hand out `zip_url`). Returns a 15-minute signed `url` (plain .geojson), `zip_url` (`zip=true`), `bytes`, `feature_count`, `bbox`. Signed-in only. |
 | `list_datasets` | `GET /v1/datasets` | `visibility` (`mine` default \| `private` \| `all` \| `public`), `include_features`, `limit`, `page` |
 | `get_dataset` | `GET /v1/datasets/{id}` | `dataset_id` (required) |
 | `create_dataset` | `POST /v1/datasets` | `name` (required), `description`, `data_type` (`vector` \| `raster` \| `data`), `geometry_type`, `srid` |
@@ -42,7 +43,7 @@ Shared options:
 - `format`: `json` (default) or `geojson` (bare GeoJSON FeatureCollection/Feature; geography lists are then unpaginated).
 - `geometry`: `simple` \| `medium` \| `detailed`. Omitted by default, so JSON responses carry no boundaries.
 - `extent` (provinces): `administrative` (API default, component LGUs only) or `geographic` (also HUC/ICC cities hosted by the province).
-- **Response size:** tool results are compact JSON, capped at 1 MB by default (`MCP_MAX_RESPONSE_BYTES` in `wrangler.toml`). A larger result comes back as a summary instead of the data: `response_too_large: true`, its size, feature or row count, bbox, property names and hints for narrowing the request (`geometry=simple`, JSON without geometry, a smaller parent area, `limit`/`page`). This only applies to MCP; api.gis.ph REST responses (QGIS, apps) are unchanged.
+- **Response size:** tool results are compact JSON, capped at 1 MB by default (`MCP_MAX_RESPONSE_BYTES` in `wrangler.toml`). A larger result comes back as a summary instead of the data: `response_too_large: true`, its size, feature or row count, bbox, property names and hints for narrowing the request (`geometry=simple`, JSON without geometry, a smaller parent area, `limit`/`page`, or `get_download_link` for the full file). This only applies to MCP; api.gis.ph REST responses (QGIS, apps) are unchanged.
 
 Name search (`search_municities`, `search_barangays`) is in the anonymous free-tier set. Batch lookup by ids/codes requires a key: the live API returns 401 without one, even for `format=json` and omitted geometry. `reverse_geocode` is a signed-in, read-only tool (not anonymous); today it checks for a forwarded API key or Bearer, and later it will require the OAuth `read:boundaries` scope. There are no places, politicians or demographics tools yet.
 

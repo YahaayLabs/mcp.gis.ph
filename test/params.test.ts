@@ -328,3 +328,15 @@ describe("reverseGeocodeParams", () => {
 });
 
 
+
+import { downloadLinkParams } from "../src/params";
+
+describe("downloadLinkParams", () => {
+  it("sends filters by their API names and never zip", () => {
+    expect(downloadLinkParams({ resource: "barangays", municipality_code: "0102801000", geometry: "medium", zip: true })).toEqual({
+      resource: "barangays",
+      municipality_code: "0102801000",
+      geometry: "medium",
+    });
+  });
+});
