@@ -312,6 +312,7 @@ export interface DownloadLinkInput {
   name?: string;
   scope?: string;
   extent?: string;
+  barangays?: boolean;
   zip?: boolean;
 }
 
@@ -320,6 +321,8 @@ export interface DownloadLinkInput {
  * `zip` is not sent: the API returns both `url` and `zip_url`.
  */
 export function downloadLinkParams(input: DownloadLinkInput): Params {
-  const { zip: _zip, ...rest } = input;
-  return defined(rest as Record<string, string | undefined>);
+  const { zip: _zip, barangays, ...rest } = input;
+  const out = defined(rest as Record<string, string | undefined>);
+  if (barangays) out.barangays = "true";
+  return out;
 }
