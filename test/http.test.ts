@@ -235,3 +235,41 @@ describe("API key (unchanged path)", () => {
     expect(upstream[0]!.headers["X-MCP-Client-Key"]).toBeUndefined();
   });
 });
+
+describe("response size budget", () => {
+  const bigFc = {
+    type: "FeatureCollection",
+    features: Array.from({ length: 50 }, (_, i) => ({
+      type: "Feature",
+      properties: { code: String(i) },
+      geometry: { type: "Polygon", coordinates: [[[120 + i, 10], [121 + i, 10], [121 + i, 11], [120 + i, 10]]] },
+    })),
+  };
+  const respondWith = (body: unknown) => {
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } })) as typeof fetch;
+  };
+
+  it("results are compact JSON (no pretty-printing)", async () => {
+    const [m] = await messages(await post(call("get_provinces")));
+    expect(m.result.content[0].text).toBe('{"data":[{"code":"01"}]}');
+  });
+
+  it("over MCP_MAX_RESPONSE_BYTES, a summary is returned instead of the data", async () => {
+    respondWith(bigFc);
+    const res = await post(call("get_regions", { format: "geojson" }), { "x-api-key": "gis_sk_test" }, { ...ENV, MCP_MAX_RESPONSE_BYTES: "1000" });
+    const [m] = await messages(res);
+    expect(m.result.isError).toBeFalsy();
+    const body = JSON.parse(m.result.content[0].text);
+    expect(body.response_too_large).toBe(true);
+    expect(body.max_bytes).toBe(1000);
+    expect(body.summary).toMatchObject({ type: "FeatureCollection", feature_count: 50, bbox: [120, 10, 170, 11] });
+  });
+
+  it("the default 1 MB budget lets normal results through", async () => {
+    respondWith(bigFc);
+    const res = await post(call("get_regions", { format: "geojson" }), { "x-api-key": "gis_sk_test" });
+    const [m] = await messages(res);
+    expect(JSON.parse(m.result.content[0].text)).toEqual(bigFc);
+  });
+});
+

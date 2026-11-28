@@ -42,6 +42,7 @@ Shared options:
 - `format`: `json` (default) or `geojson` (bare GeoJSON FeatureCollection/Feature; geography lists are then unpaginated).
 - `geometry`: `simple` \| `medium` \| `detailed`. Omitted by default, so JSON responses carry no boundaries.
 - `extent` (provinces): `administrative` (API default, component LGUs only) or `geographic` (also HUC/ICC cities hosted by the province).
+- **Response size:** tool results are compact JSON, capped at 1 MB by default (`MCP_MAX_RESPONSE_BYTES` in `wrangler.toml`). A larger result comes back as a summary instead of the data: `response_too_large: true`, its size, feature or row count, bbox, property names and hints for narrowing the request (`geometry=simple`, JSON without geometry, a smaller parent area, `limit`/`page`). This only applies to MCP; api.gis.ph REST responses (QGIS, apps) are unchanged.
 
 Name search (`search_municities`, `search_barangays`) is in the anonymous free-tier set. Batch lookup by ids/codes requires a key: the live API returns 401 without one, even for `format=json` and omitted geometry. `reverse_geocode` is a signed-in, read-only tool (not anonymous); today it checks for a forwarded API key or Bearer, and later it will require the OAuth `read:boundaries` scope. There are no places, politicians or demographics tools yet.
 

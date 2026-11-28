@@ -2,6 +2,8 @@
  * mcp.gis.ph runtime config (mcp.gis.ph#5). Non-secret defaults live in
  * wrangler.toml [vars]; secrets are Worker secrets (names only here).
  */
+import { parseMaxResponseBytes } from "./response-budget";
+
 export interface McpEnv {
   /** Secret. HS256 key shared with api.gis.ph (the authorization server). */
   MCP_OAUTH_SECRET?: string;
@@ -15,6 +17,8 @@ export interface McpEnv {
   MCP_PUBLIC_BASE?: string;
   /** Upstream API base incl. version (default https://api.gis.ph/v1). */
   GISPH_API_BASE?: string;
+  /** Max bytes of a tool result sent to MCP clients (default 1000000); larger results become a summary. */
+  MCP_MAX_RESPONSE_BYTES?: string;
 }
 
 export const DEFAULTS = {
@@ -53,6 +57,7 @@ export function config(env: McpEnv) {
     apiBase: origin(env.GISPH_API_BASE, DEFAULTS.apiBase),
     oauthSecret: secret.length >= MIN_SECRET_LENGTH ? secret : null,
     serviceKey: env.GISPH_MCP_SERVICE_KEY ? env.GISPH_MCP_SERVICE_KEY : null,
+    maxResponseBytes: parseMaxResponseBytes(env.MCP_MAX_RESPONSE_BYTES),
   };
 }
 

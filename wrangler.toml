@@ -23,3 +23,6 @@ MCP_OAUTH_ISSUER = "https://api.gis.ph"
 MCP_OAUTH_AUDIENCE = "gisph-mcp"
 MCP_PUBLIC_BASE = "https://mcp.gis.ph"
 GISPH_API_BASE = "https://api.gis.ph/v1"
+# Max bytes of a tool result returned to MCP clients; larger results come back
+# as a summary with hints (src/response-budget.ts). Does not affect api.gis.ph.
+MCP_MAX_RESPONSE_BYTES = "1000000"

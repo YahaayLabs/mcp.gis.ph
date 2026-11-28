@@ -35,7 +35,8 @@ import {
   reverseGeocodeShape,
 } from "./schemas";
 import { handleMcp, registerAuthRoutes, discoveryAuth, type UpstreamAuth } from "./http";
-import type { McpEnv } from "./config";
+import { config, type McpEnv } from "./config";
+import { DEFAULT_MAX_RESPONSE_BYTES, toolResult } from "./response-budget";
 import { trackTools, ANONYMOUS_TOOLS, SIGNED_IN_TOOLS } from "./tool-policy";
 import { upstreamParams } from "./auth";
 
@@ -71,12 +72,10 @@ async function gisApi(
   return response.json();
 }
 
-function json(data: unknown) {
-  return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
-}
-
-function buildMcpServer(apiKey: UpstreamAuth): McpServer {
+function buildMcpServer(apiKey: UpstreamAuth, maxResponseBytes: number = DEFAULT_MAX_RESPONSE_BYTES): McpServer {
   const server = new McpServer({ name: "gis-ph", version: "1.0.0" });
+  /** Compact JSON, or a summary with hints when over the MCP response budget (src/response-budget.ts). */
+  const json = (data: unknown) => toolResult(data, maxResponseBytes);
   const tools = trackTools(server);
 
   // ── Regions ────────────────────────────────────────────────────────────
@@ -321,7 +320,7 @@ app.get("/", (c) =>
 
 app.all("/mcp", (c) =>
   handleMcp(c, async (upstream) => {
-    const server = buildMcpServer(upstream);
+    const server = buildMcpServer(upstream, config(c.env).maxResponseBytes);
     const transport = new StreamableHTTPTransport();
     await server.connect(transport);
     return transport.handleRequest(c);

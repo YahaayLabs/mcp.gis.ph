@@ -28,7 +28,7 @@ export const geoOutputShape = {
   format: z.enum(FORMATS).optional()
     .describe("Response format: 'json' (default, { data, meta, error } envelope) or 'geojson' (bare GeoJSON)"),
   geometry: z.enum(GEOMETRY_LEVELS).optional()
-    .describe("Boundary resolution. With json, omit to exclude geometry; with geojson, defaults to 'simple'"),
+    .describe("Boundary resolution. With json, omit to exclude geometry; with geojson, defaults to 'simple'. Prefer 'simple': results over the MCP size limit (1 MB by default) come back as a summary instead of data"),
 };
 
 export const regionsShape = {
